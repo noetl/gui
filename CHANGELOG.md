@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.1](https://github.com/noetl/gui/compare/v1.0.0...v1.0.1) (2026-03-02)
+
+### Bug Fixes
+
+* remove build-time gateway env from Dockerfile ([f149bd2](https://github.com/noetl/gui/commit/f149bd2eb932623ebd89fea993e6ecf6bc34df47))
+
 ## 1.0.0 (2026-03-02)
 
 ### Features
