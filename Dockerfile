@@ -6,9 +6,6 @@ RUN npm ci
 
 COPY . ./
 
-ARG VITE_GATEWAY_URL=https://gateway.mestumre.dev
-ENV VITE_GATEWAY_URL=${VITE_GATEWAY_URL}
-
 RUN npm run build
 
 FROM nginx:1.27-alpine
