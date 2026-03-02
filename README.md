@@ -33,7 +33,6 @@ Build image locally:
 ```bash
 docker build \
   -t local/noetl-gui:dev \
-  --build-arg VITE_GATEWAY_URL=http://localhost:8090 \
   .
 ```
 
@@ -49,7 +48,6 @@ Open: `http://localhost:8080`
 
 - API base defaults to `gateway.<host>` in browser runtime (for public deployments).
 - For local browser host (`localhost` / `127.0.0.1`), GUI uses `http://localhost:8090`.
-- Build-time override: `VITE_GATEWAY_URL`.
 
 ## Release and publish
 
