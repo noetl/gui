@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.2](https://github.com/noetl/gui/compare/v1.0.1...v1.0.2) (2026-03-12)
+
+### Bug Fixes
+
+* Create build_on_release workflow AHM-4253 ([0e2b142](https://github.com/noetl/gui/commit/0e2b1425dbccac6e3ab9e8f5d771ba42828f7593))
+
 ## [1.0.1](https://github.com/noetl/gui/compare/v1.0.0...v1.0.1) (2026-03-02)
 
 ### Bug Fixes
