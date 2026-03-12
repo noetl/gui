@@ -6,9 +6,8 @@ on:
       - main
 
 permissions:
-  contents: write
-  issues: write
-  pull-requests: write
+  id-token: write
+  contents: read
 
 jobs:
   release:
@@ -21,6 +20,13 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
 
+      - name: Token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.SEMANTIC_RELEASE_APP_ID }}
+          private-key: ${{ secrets.SEMANTIC_RELEASE_PRIVATE_KEY }}
+
       - name: Release
         uses: cycjimmy/semantic-release-action@v4
         with:
@@ -31,4 +37,4 @@ jobs:
             @semantic-release/exec@v7.1.0
             conventional-changelog-conventionalcommits@8.0.0
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
