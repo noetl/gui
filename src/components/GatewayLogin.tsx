@@ -5,9 +5,12 @@ import {
   getAuth0AuthorizeUrl,
   getUserInfo,
   isAuthenticated,
+  loginAsDevUser,
   loginWithAuth0Token,
   validateSession,
 } from "../services/gatewayAuth";
+
+const allowSkipAuth = import.meta.env.VITE_ALLOW_SKIP_AUTH === "true";
 import "../styles/Gateway.css";
 
 const { Title, Text } = Typography;
@@ -131,6 +134,22 @@ const GatewayLogin = () => {
               Sign In with Token
             </Button>
           </Form>
+
+          {allowSkipAuth && (
+            <>
+              <Divider plain>LOCAL DEV</Divider>
+              <Button
+                type="dashed"
+                block
+                onClick={() => {
+                  loginAsDevUser();
+                  navigate("/", { replace: true });
+                }}
+              >
+                Continue without Authentication
+              </Button>
+            </>
+          )}
         </Space>
       </Card>
     </div>

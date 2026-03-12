@@ -25,6 +25,7 @@ type PendingCallback = {
 
 const SESSION_TOKEN_KEY = "session_token";
 const USER_INFO_KEY = "user_info";
+const DEV_SKIP_AUTH_TOKEN = "dev-skip-auth";
 const PLAYBOOK_NAME = "api_integration/amadeus_ai_api";
 
 const MAX_RECONNECT_ATTEMPTS = 5;
@@ -189,6 +190,19 @@ export function logout(): void {
 
 export function isAuthenticated(): boolean {
   return Boolean(getSessionToken());
+}
+
+export function isDevSkipAuth(): boolean {
+  return getSessionToken() === DEV_SKIP_AUTH_TOKEN;
+}
+
+export function loginAsDevUser(): void {
+  setSessionToken(DEV_SKIP_AUTH_TOKEN);
+  setUserInfo({
+    email: "dev@local",
+    display_name: "Local Dev User",
+    roles: ["admin"],
+  });
 }
 
 export async function checkPlaybookAccess(
