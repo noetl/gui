@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.4](https://github.com/noetl/gui/compare/v1.0.3...v1.0.4) (2026-03-12)
+
+### Bug Fixes
+
+* Update release workflow AHM-4253 ([8775573](https://github.com/noetl/gui/commit/8775573d7b63fc760e55d86fc00df73e383af0cb))
+
 ## [1.0.3](https://github.com/noetl/gui/compare/v1.0.2...v1.0.3) (2026-03-12)
 
 ### Bug Fixes
