@@ -30,15 +30,9 @@
       }
     ],
     [
-      "@semantic-release/exec",
-      {
-        "prepareCmd": "npm version ${nextRelease.version} --no-git-tag-version --allow-same-version"
-      }
-    ],
-    [
       "@semantic-release/git",
       {
-        "assets": ["package.json", "package-lock.json", "CHANGELOG.md"],
+        "assets": ["CHANGELOG.md"],
         "message": "chore(release): version ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
       }
     ]
