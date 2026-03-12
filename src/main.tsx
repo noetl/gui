@@ -23,7 +23,7 @@ import GatewayAssistant from "./components/GatewayAssistant";
 import UserManagement from "./components/UserManagement";
 
 // Import auth functions
-import { isAuthenticated, getUserInfo, validateSession, logout, type GatewayUser } from "./services/gatewayAuth";
+import { isAuthenticated, getUserInfo, validateSession, logout, isDevSkipAuth, type GatewayUser } from "./services/gatewayAuth";
 
 // Import styles
 import "antd/dist/reset.css";
@@ -136,6 +136,12 @@ const AuthenticatedApp: React.FC = () => {
     const checkAuth = async () => {
       if (!isAuthenticated()) {
         navigate("/login", { replace: true });
+        return;
+      }
+
+      if (import.meta.env.VITE_ALLOW_SKIP_AUTH === "true" && isDevSkipAuth()) {
+        setUser(getUserInfo());
+        setLoading(false);
         return;
       }
 
