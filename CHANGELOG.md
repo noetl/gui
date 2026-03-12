@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.3](https://github.com/noetl/gui/compare/v1.0.2...v1.0.3) (2026-03-12)
+
+### Bug Fixes
+
+* Update semantic release config AHM-4253 ([336e71a](https://github.com/noetl/gui/commit/336e71aeb0beeffc23213a08326a63f997dc3b28))
+
 ## [1.0.2](https://github.com/noetl/gui/compare/v1.0.1...v1.0.2) (2026-03-12)
 
 ### Bug Fixes
