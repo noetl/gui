@@ -131,6 +131,23 @@ class APIService {
     return rawList.map((item) => this.normalizeExecution(item));
   }
 
+  private normalizeExecuteRequest(requestBody: any): any {
+    const body = { ...(requestBody || {}) };
+    if (body.workload === undefined) {
+      if (body.payload !== undefined) {
+        body.workload = body.payload;
+      } else if (body.args !== undefined) {
+        body.workload = body.args;
+      }
+    }
+    delete body.payload;
+    delete body.args;
+    if (body.resource_kind === undefined && body.resource_type === undefined) {
+      body.resource_kind = "playbook";
+    }
+    return body;
+  }
+
   async getHealth(): Promise<ServerStatus> {
     const response = await apiClient.get("/health");
     return response.data;
@@ -203,6 +220,11 @@ class APIService {
     // Use primary execution detail endpoint under /api/executions with pagination support
     const response = await apiClient.get(`/executions/${id}`, { params });
     return this.normalizeExecution(response.data);
+  }
+
+  async getExecutionStatus(id: string): Promise<any> {
+    const response = await apiClient.get(`/executions/${id}/status`);
+    return response.data;
   }
 
   async getExecutionEvents(id: string, params?: {
@@ -311,17 +333,28 @@ class APIService {
     params?: any,
   ): Promise<ExecutionData> {
     // v2 engine now served under /api; keep path relative to API base
-    const response = await apiClient.post(`/execute`, {
+    const response = await apiClient.post(`/execute`, this.normalizeExecuteRequest({
       catalog_id,
-      payload: params || {},
-    });
+      workload: params || {},
+    }));
     return response.data;
   }
 
   async executePlaybookWithPayload(
     requestBody: any,
   ): Promise<{ execution_id: string }> {
-    const response = await apiClient.post("/execute", requestBody);
+    const response = await apiClient.post("/execute", this.normalizeExecuteRequest(requestBody));
+    return response.data;
+  }
+
+  async rerunExecution(
+    executionId: string,
+    workload?: Record<string, any>,
+  ): Promise<{ execution_id: string }> {
+    const response = await apiClient.post(
+      `/executions/${executionId}/rerun`,
+      this.normalizeExecuteRequest({ workload: workload || {} }),
+    );
     return response.data;
   }
 

@@ -371,17 +371,17 @@ const PlaybookTestLab: React.FC<PlaybookTestLabProps> = ({ yamlContent, playbook
       const executionStart = await apiService.executePlaybookWithPayload({
         path: parsedMetadata.path,
         version: parsedMetadata.version || "latest",
-        payload,
+        workload: payload,
       });
       const executionId = executionStart.execution_id;
-      let execution = await apiService.getExecution(executionId);
+      let execution = await apiService.getExecutionStatus(executionId);
 
       const maxPollCount = 120;
       let pollCount = 0;
       while (!isTerminalStatus(execution?.status) && pollCount < maxPollCount) {
         pollCount += 1;
         await sleep(1500);
-        execution = await apiService.getExecution(executionId);
+        execution = await apiService.getExecutionStatus(executionId);
       }
 
       if (!isTerminalStatus(execution?.status)) {
@@ -399,13 +399,16 @@ const PlaybookTestLab: React.FC<PlaybookTestLabProps> = ({ yamlContent, playbook
         return;
       }
 
-      const assertionResult = evaluateAssertions(test.assertionsText, execution);
+      const executionForAssertions = await apiService
+        .getExecution(executionId)
+        .catch(() => execution);
+      const assertionResult = evaluateAssertions(test.assertionsText, executionForAssertions);
       updateTest(testId, {
         running: false,
         lastRun: {
           passed: assertionResult.passed,
           executionId,
-          status: execution?.status,
+          status: executionForAssertions?.status,
           durationMs: Date.now() - startedAt,
           message: assertionResult.message,
           details: assertionResult.details,

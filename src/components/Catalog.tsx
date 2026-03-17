@@ -232,7 +232,7 @@ const Catalog: React.FC = () => {
     };
 
     if (payloadObject) {
-      requestBody.args = payloadObject;
+      requestBody.workload = payloadObject;
     }
 
     try {

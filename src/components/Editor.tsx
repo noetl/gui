@@ -202,7 +202,7 @@ workflow: []
       const response = await apiService.executePlaybookWithPayload({
         path: target.path,
         version: target.version || "latest",
-        payload: {},
+        workload: {},
       });
       message.success(`Execution started. ID: ${response.execution_id}`);
       navigate(`/execution/${response.execution_id}`);
