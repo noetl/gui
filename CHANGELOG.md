@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.5](https://github.com/noetl/gui/compare/v1.0.4...v1.0.5) (2026-03-17)
+
+### Bug Fixes
+
+* use canonical workload and status execution APIs ([b2d93ea](https://github.com/noetl/gui/commit/b2d93ea0adfe470f5eeabb7294bd51615654897c))
+
 ## [1.0.4](https://github.com/noetl/gui/compare/v1.0.3...v1.0.4) (2026-03-12)
 
 ### Bug Fixes
