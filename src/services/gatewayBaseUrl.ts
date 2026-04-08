@@ -13,8 +13,13 @@ function inferGatewayHostname(hostname: string): string {
   return `gateway.${strippedHost}`;
 }
 
+export function resolveApiMode(): "gateway" | "direct" {
+  const envMode = import.meta.env.VITE_API_MODE;
+  return envMode === "direct" ? "direct" : "gateway";
+}
+
 export function resolveGatewayBaseUrl(): string {
-  const envValue = import.meta.env.VITE_GATEWAY_URL;
+  const envValue = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_GATEWAY_URL;
   if (envValue && envValue.trim().length > 0) {
     return trimTrailingSlash(envValue.trim());
   }
@@ -22,7 +27,7 @@ export function resolveGatewayBaseUrl(): string {
   const { hostname, protocol, origin } = window.location;
 
   if (isLocalHost(hostname)) {
-    return "http://localhost:8090";
+    return resolveApiMode() === "direct" ? "http://localhost:8082" : "http://localhost:8090";
   }
 
   const inferredGatewayHost = inferGatewayHostname(hostname);

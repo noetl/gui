@@ -11,8 +11,12 @@ import { resolveGatewayBaseUrl } from "./gatewayBaseUrl";
 
 const SESSION_TOKEN_KEY = "session_token";
 
-// In gateway-only mode, NoETL APIs are proxied under /noetl
-const getApiBaseUrl = () => `${resolveGatewayBaseUrl()}/noetl`;
+const getApiBaseUrl = () => {
+  if (import.meta.env.VITE_API_MODE === "direct") {
+    return resolveGatewayBaseUrl();
+  }
+  return `${resolveGatewayBaseUrl()}/noetl`;
+};
 
 const API_BASE_URL = getApiBaseUrl();
 
