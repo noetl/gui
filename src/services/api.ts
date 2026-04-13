@@ -10,6 +10,7 @@ import { CreatePlaybookResponse } from "./api.types";
 import { resolveGatewayBaseUrl } from "./gatewayBaseUrl";
 
 const SESSION_TOKEN_KEY = "session_token";
+const DEV_SKIP_AUTH_TOKEN = "dev-skip-auth";
 
 const getApiBaseUrl = () => {
   if (import.meta.env.VITE_API_MODE === "direct") {
@@ -30,6 +31,11 @@ const apiClient = axios.create({
 
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem(SESSION_TOKEN_KEY);
+  // In dev skip auth mode: bypass the Gateway and call NoETL server directly
+  if (import.meta.env.VITE_ALLOW_SKIP_AUTH === "true" && token === DEV_SKIP_AUTH_TOKEN) {
+    config.baseURL = "http://localhost:8082/api";
+    return config;
+  }
   if (token) {
     config.headers = config.headers || {};
     config.headers.Authorization = `Bearer ${token}`;
