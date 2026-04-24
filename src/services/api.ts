@@ -8,12 +8,15 @@ import {
 } from "../types";
 import { CreatePlaybookResponse } from "./api.types";
 import { resolveGatewayBaseUrl } from "./gatewayBaseUrl";
+import { isEnvTrue, readAppEnv } from "./runtimeEnv";
 
 const SESSION_TOKEN_KEY = "session_token";
 const DEV_SKIP_AUTH_TOKEN = "dev-skip-auth";
 
+const trimTrailingSlash = (value: string): string => value.replace(/\/+$/, "");
+
 const getApiBaseUrl = () => {
-  if (import.meta.env.VITE_API_MODE === "direct") {
+  if (readAppEnv("VITE_API_MODE") === "direct") {
     return resolveGatewayBaseUrl();
   }
   return `${resolveGatewayBaseUrl()}/noetl`;
@@ -32,8 +35,9 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem(SESSION_TOKEN_KEY);
   // In dev skip auth mode: bypass the Gateway and call NoETL server directly
-  if (import.meta.env.VITE_ALLOW_SKIP_AUTH === "true" && token === DEV_SKIP_AUTH_TOKEN) {
-    config.baseURL = "http://localhost:8082/api";
+  if (isEnvTrue("VITE_ALLOW_SKIP_AUTH") && token === DEV_SKIP_AUTH_TOKEN) {
+    const directApiBase = trimTrailingSlash(readAppEnv("VITE_API_BASE_URL", "http://localhost:8082"));
+    config.baseURL = `${directApiBase}/api`;
     return config;
   }
   if (token) {

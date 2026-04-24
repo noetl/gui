@@ -49,6 +49,30 @@ Open: `http://localhost:8080`
 - API base defaults to `gateway.<host>` in browser runtime (for public deployments).
 - For local browser host (`localhost` / `127.0.0.1`), GUI uses `http://localhost:8090`.
 
+## Runtime environment configuration (no rebuild)
+
+The container writes `/env-config.js` at startup from environment variables, so API/auth settings can be changed at deploy/run time without rebuilding the image.
+
+Supported runtime variables:
+
+- `VITE_API_MODE` (`gateway` or `direct`)
+- `VITE_API_BASE_URL` (for direct mode)
+- `VITE_ALLOW_SKIP_AUTH` (`true`/`false`)
+- `VITE_GATEWAY_URL`
+- `VITE_AUTH0_DOMAIN`
+- `VITE_AUTH0_CLIENT_ID`
+- `VITE_AUTH0_REDIRECT_URI`
+
+Example:
+
+```bash
+docker run --rm -p 8080:8080 \
+  -e VITE_API_MODE=direct \
+  -e VITE_API_BASE_URL=http://722-2.local:8082 \
+  -e VITE_ALLOW_SKIP_AUTH=true \
+  local/noetl-gui:dev
+```
+
 ## Release and publish
 
 This repo uses two workflows:

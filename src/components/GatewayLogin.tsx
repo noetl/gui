@@ -9,8 +9,9 @@ import {
   loginWithAuth0Token,
   validateSession,
 } from "../services/gatewayAuth";
+import { isEnvTrue } from "../services/runtimeEnv";
 
-const allowSkipAuth = import.meta.env.VITE_ALLOW_SKIP_AUTH === "true";
+const allowSkipAuth = isEnvTrue("VITE_ALLOW_SKIP_AUTH");
 import "../styles/Gateway.css";
 
 const { Title, Text } = Typography;

@@ -1,3 +1,5 @@
+import { readAppEnv } from "./runtimeEnv";
+
 const trimTrailingSlash = (value: string): string => value.replace(/\/+$/, "");
 
 function isLocalHost(hostname: string): boolean {
@@ -14,12 +16,12 @@ function inferGatewayHostname(hostname: string): string {
 }
 
 export function resolveApiMode(): "gateway" | "direct" {
-  const envMode = import.meta.env.VITE_API_MODE;
+  const envMode = readAppEnv("VITE_API_MODE");
   return envMode === "direct" ? "direct" : "gateway";
 }
 
 export function resolveGatewayBaseUrl(): string {
-  const envValue = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_GATEWAY_URL;
+  const envValue = readAppEnv("VITE_API_BASE_URL") || readAppEnv("VITE_GATEWAY_URL");
   if (envValue && envValue.trim().length > 0) {
     return trimTrailingSlash(envValue.trim());
   }

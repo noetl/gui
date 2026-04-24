@@ -24,6 +24,7 @@ import UserManagement from "./components/UserManagement";
 
 // Import auth functions
 import { isAuthenticated, getUserInfo, validateSession, logout, isDevSkipAuth, type GatewayUser } from "./services/gatewayAuth";
+import { isEnvTrue } from "./services/runtimeEnv";
 
 // Import styles
 import "antd/dist/reset.css";
@@ -139,7 +140,7 @@ const AuthenticatedApp: React.FC = () => {
         return;
       }
 
-      if (import.meta.env.VITE_ALLOW_SKIP_AUTH === "true" && isDevSkipAuth()) {
+      if (isEnvTrue("VITE_ALLOW_SKIP_AUTH") && isDevSkipAuth()) {
         setUser(getUserInfo());
         setLoading(false);
         return;

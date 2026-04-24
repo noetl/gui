@@ -1,4 +1,5 @@
 import { resolveGatewayBaseUrl } from "./gatewayBaseUrl";
+import { readAppEnv } from "./runtimeEnv";
 
 export type GatewayUser = {
   email?: string;
@@ -54,18 +55,15 @@ function getGatewayBaseUrl(): string {
 }
 
 function getAuth0RedirectUri(): string {
-  return (
-    import.meta.env.VITE_AUTH0_REDIRECT_URI ||
-    `${window.location.origin}/login`
-  );
+  return readAppEnv("VITE_AUTH0_REDIRECT_URI", `${window.location.origin}/login`);
 }
 
 export function getAuth0Domain(): string {
-  return import.meta.env.VITE_AUTH0_DOMAIN || "mestumre-development.us.auth0.com";
+  return readAppEnv("VITE_AUTH0_DOMAIN", "mestumre-development.us.auth0.com");
 }
 
 export function getAuth0ClientId(): string {
-  return import.meta.env.VITE_AUTH0_CLIENT_ID || "Jqop7YoaiZalLHdBRo5ScNQ1RJhbhbDN";
+  return readAppEnv("VITE_AUTH0_CLIENT_ID", "Jqop7YoaiZalLHdBRo5ScNQ1RJhbhbDN");
 }
 
 export function getAuth0AuthorizeUrl(): string {
