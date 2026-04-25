@@ -3,13 +3,12 @@
    ========================================================================== */
 body {
   font-family:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
-    Arial, sans-serif;
+    "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
   margin: 0;
   padding: 0;
-  background-color: #f5f5f5;
-  color: rgba(0, 0, 0, 0.85);
-  line-height: 1.6;
+  background-color: #050805;
+  color: #9cff9c;
+  line-height: 1.45;
 }
 
 /* ==========================================================================
@@ -40,16 +39,29 @@ body {
 /* ==========================================================================
    Layout Components - Used by main.tsx
    ========================================================================== */
+.terminal-app {
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(156, 255, 156, 0.035),
+      rgba(156, 255, 156, 0.035) 1px,
+      transparent 1px,
+      transparent 4px
+    ),
+    #050805 !important;
+}
+
 .app-header {
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-  padding: 0 32px;
-  height: 64px;
-  margin: 24px 48px 0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  border-radius: 12px;
+  background: #071007;
+  padding: 0 20px;
+  height: 56px;
+  margin: 16px 16px 0;
+  box-shadow: none;
+  border-radius: 0;
   display: flex;
   align-items: center;
-  border: 1px solid rgba(24, 144, 255, 0.08);
+  border: 1px solid #2f6f2f;
+  border-left: 4px solid #9cff9c;
 }
 
 .header-inner {
@@ -61,14 +73,15 @@ body {
 }
 
 .logo {
-  font-size: 22px;
+  font-size: 18px;
   font-weight: 700;
-  letter-spacing: 0.5px;
+  letter-spacing: 0;
   white-space: nowrap;
   flex-shrink: 0;
-  color: #262626;
+  color: #d6ffd6;
   display: flex;
   align-items: center;
+  text-transform: uppercase;
 }
 
 .centered-menu {
@@ -77,25 +90,164 @@ body {
   transform: translateX(-50%);
   background: transparent;
   border-bottom: none;
-  font-size: 16px;
+  font-size: 13px;
   display: flex;
   font-weight: 500;
+  text-transform: uppercase;
 }
 
 .centered-menu .ant-menu-item {
   display: flex;
   align-items: center;
   gap: 6px;
-  border-radius: 8px;
+  border-radius: 0;
   margin: 0 4px;
-  transition: all 0.3s ease;
+  transition: none;
+  color: #9cff9c !important;
 }
 
 .centered-menu .ant-menu-item:hover {
-  background-color: rgba(24, 144, 255, 0.06);
+  background-color: #123112 !important;
 }
 
 .centered-menu .ant-menu-item-selected {
-  background-color: rgba(24, 144, 255, 0.1) !important;
-  color: #1890ff !important;
+  background-color: #173d17 !important;
+  color: #ffffff !important;
+}
+
+.terminal-content {
+  padding: 16px;
+  margin: 0;
+}
+
+.terminal-panel {
+  background: rgba(7, 16, 7, 0.96);
+  border: 1px solid #2f6f2f;
+  border-radius: 0;
+  box-shadow: inset 0 0 0 1px rgba(156, 255, 156, 0.08);
+  padding: 18px;
+}
+
+.terminal-panel::before {
+  content: "noetl@kind:~$";
+  display: block;
+  color: #d6ffd6;
+  margin-bottom: 14px;
+}
+
+.ant-layout,
+.ant-layout-footer,
+.ant-card,
+.ant-card-head,
+.ant-card-body,
+.ant-table,
+.ant-table-container,
+.ant-table-thead > tr > th,
+.ant-table-tbody > tr > td,
+.ant-modal-content,
+.ant-modal-header,
+.ant-tabs-nav,
+.ant-input,
+.ant-input-affix-wrapper,
+.ant-select-selector,
+.ant-picker,
+.ant-btn,
+.ant-alert {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace !important;
+  border-radius: 0 !important;
+}
+
+.ant-card,
+.ant-modal-content,
+.ant-table,
+.ant-table-container {
+  background: #071007 !important;
+  border-color: #2f6f2f !important;
+  color: #9cff9c !important;
+}
+
+.ant-card-head,
+.ant-table-thead > tr > th {
+  background: #0b1c0b !important;
+  border-color: #2f6f2f !important;
+  color: #d6ffd6 !important;
+  text-transform: uppercase;
+}
+
+.ant-table-tbody > tr > td {
+  background: #071007 !important;
+  border-color: #1e471e !important;
+  color: #9cff9c !important;
+}
+
+.ant-table-tbody > tr:hover > td {
+  background: #102810 !important;
+}
+
+.ant-typography,
+.ant-statistic-title,
+.ant-statistic-content,
+.ant-tabs-tab,
+.ant-tabs-tab-btn,
+.ant-form-item-label > label,
+.ant-select-selection-item,
+.ant-select-selection-placeholder,
+.ant-picker-input > input,
+.ant-input,
+.ant-input-affix-wrapper,
+.ant-pagination,
+.ant-pagination-item a,
+.ant-empty-description {
+  color: #9cff9c !important;
+}
+
+.ant-typography code {
+  background: #020402 !important;
+  border: 1px solid #2f6f2f;
+  color: #d6ffd6 !important;
+  border-radius: 0;
+}
+
+.ant-btn {
+  background: #071007 !important;
+  border-color: #4da64d !important;
+  color: #d6ffd6 !important;
+  box-shadow: none !important;
+}
+
+.ant-btn:hover,
+.ant-btn:focus {
+  background: #173d17 !important;
+  border-color: #9cff9c !important;
+  color: #ffffff !important;
+}
+
+.ant-btn-primary {
+  background: #1d5f1d !important;
+  border-color: #9cff9c !important;
+}
+
+.ant-input,
+.ant-input-affix-wrapper,
+.ant-select-selector,
+.ant-picker {
+  background: #020402 !important;
+  border-color: #2f6f2f !important;
+  color: #d6ffd6 !important;
+}
+
+.ant-tag {
+  border-radius: 0;
+  background: #102810 !important;
+  border-color: #4da64d !important;
+  color: #d6ffd6 !important;
+  text-transform: uppercase;
+}
+
+.ant-progress-bg {
+  background: #9cff9c !important;
+}
+
+.ant-progress-inner {
+  background: #020402 !important;
 }

@@ -434,7 +434,7 @@ const Catalog: React.FC = () => {
     <Content className="catalog-main-content">
       <Space direction="vertical" size="large" className="catalog-space-vertical">
         <div className="catalog-header">
-          <Title level={2}>📚 Playbook Catalog</Title>
+          <Title level={2}>PLAYBOOK CATALOG</Title>
           <Button
             type="primary"
             icon={<PlusOutlined />}

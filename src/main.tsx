@@ -54,12 +54,12 @@ type MenuItem = {
 };
 
 const ALL_MENU_ITEMS: MenuItem[] = [
-  { key: "/catalog", label: "Catalog Discovery", path: "/catalog", section: "Catalog", icon: <AppstoreOutlined />, roles: [], adminOnly: true },
-  { key: "/execution", label: "Observability", path: "/execution", section: "Operate", icon: <EyeOutlined />, roles: [], adminOnly: true },
-  { key: "/editor", label: "Playbook Editor", path: "/editor", section: "Build", icon: <CodeOutlined />, roles: [], adminOnly: true },
-  { key: "/credentials", label: "Credentials", path: "/credentials", section: "Admin", icon: <KeyOutlined />, roles: [], adminOnly: true },
-  { key: "/travel", label: "Travel Assistant", path: "/travel", section: "Operate", icon: <DatabaseOutlined />, roles: ["analyst", "viewer", "developer", "admin"] },
-  { key: "/users", label: "Users", path: "/users", section: "Admin", icon: <TeamOutlined />, roles: [], adminOnly: true },
+  { key: "/catalog", label: "catalog", path: "/catalog", section: "Catalog", icon: <AppstoreOutlined />, roles: [], adminOnly: true },
+  { key: "/execution", label: "observe", path: "/execution", section: "Operate", icon: <EyeOutlined />, roles: [], adminOnly: true },
+  { key: "/editor", label: "edit", path: "/editor", section: "Build", icon: <CodeOutlined />, roles: [], adminOnly: true },
+  { key: "/credentials", label: "secrets", path: "/credentials", section: "Admin", icon: <KeyOutlined />, roles: [], adminOnly: true },
+  { key: "/travel", label: "travel", path: "/travel", section: "Operate", icon: <DatabaseOutlined />, roles: ["analyst", "viewer", "developer", "admin"] },
+  { key: "/users", label: "users", path: "/users", section: "Admin", icon: <TeamOutlined />, roles: [], adminOnly: true },
 ];
 
 function hasAccess(item: MenuItem, userRoles: string[]): boolean {
@@ -129,7 +129,7 @@ const LoginPage: React.FC = () => {
       }}
     >
       <AntdApp>
-        <div style={{ minHeight: "100vh", background: "#f5f5f5", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ minHeight: "100vh", background: "#050805", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <GatewayLogin />
         </div>
       </AntdApp>
@@ -235,10 +235,10 @@ const AuthenticatedApp: React.FC = () => {
   }
 
   return (
-    <Layout className="app" style={{ minHeight: "100vh", background: "#f5f5f5" }}>
+    <Layout className="app terminal-app" style={{ minHeight: "100vh" }}>
       <Header className="app-header">
         <div className="header-inner">
-          <div className="logo">NoETL</div>
+          <div className="logo">NOETL://LOCAL</div>
           <Menu
             theme="light"
             mode="horizontal"
@@ -248,16 +248,8 @@ const AuthenticatedApp: React.FC = () => {
           />
         </div>
       </Header>
-      <Content style={{ padding: "24px", margin: "0 24px" }}>
-        <div
-          className="AppRoutesContent"
-          style={{
-            background: "#fff",
-            padding: "24px",
-            borderRadius: "12px",
-            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.06)",
-          }}
-        >
+      <Content className="terminal-content">
+        <div className="AppRoutesContent terminal-panel">
           <Routes>
             <Route
               path="/"
@@ -289,7 +281,7 @@ const AuthenticatedApp: React.FC = () => {
           fontSize: "14px",
         }}
       >
-        NoETL 2025
+        [ noetl console :: 2026 ]
       </Footer>
     </Layout>
   );
@@ -302,9 +294,11 @@ const App: React.FC = () => {
       theme={{
         token: {
           colorPrimary: "#1890ff",
-          borderRadius: 8,
-          colorBgContainer: "#ffffff",
-          colorBgLayout: "#f5f5f5",
+          borderRadius: 0,
+          colorBgContainer: "#071007",
+          colorBgLayout: "#050805",
+          colorText: "#9cff9c",
+          colorBorder: "#2f6f2f",
         },
       }}
     >

@@ -694,7 +694,7 @@ const Execution: React.FC = () => {
         <Space direction="vertical" size="large" className="execution-space-vertical">
           <Row justify="space-between" align="middle">
             <Col>
-              <Title level={2}>Observability</Title>
+              <Title level={2}>EXECUTION OBSERVABILITY</Title>
             </Col>
             <Col>
               <Button
