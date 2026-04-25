@@ -20,6 +20,7 @@ import Execution from "./components/Execution";
 import ExecutionDetail from "./components/ExecutionDetail";
 import GatewayLogin from "./components/GatewayLogin";
 import GatewayAssistant from "./components/GatewayAssistant";
+import NoetlPrompt from "./components/NoetlPrompt";
 import UserManagement from "./components/UserManagement";
 import {
   AppstoreOutlined,
@@ -293,6 +294,7 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
       </Header>
       <Content className="terminal-content">
         <div className="AppRoutesContent terminal-panel">
+          <NoetlPrompt />
           <Routes>
             <Route
               path="/"

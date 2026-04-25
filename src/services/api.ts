@@ -27,6 +27,13 @@ const getApiBaseUrl = () => {
 
 const API_BASE_URL = getApiBaseUrl();
 
+export interface ApiRuntimeContext {
+  mode: "direct" | "gateway";
+  apiBaseUrl: string;
+  displayName: string;
+  allowSkipAuth: boolean;
+}
+
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   timeout: 120 * 1000,
@@ -133,6 +140,34 @@ apiClient.interceptors.response.use(
 // }
 
 class APIService {
+  getRuntimeContext(): ApiRuntimeContext {
+    const mode = readAppEnv("VITE_API_MODE") === "direct" ? "direct" : "gateway";
+    const allowSkipAuth = isEnvTrue("VITE_ALLOW_SKIP_AUTH");
+    const base = mode === "direct"
+      ? trimTrailingSlash(readAppEnv("VITE_API_BASE_URL", "http://localhost:8082"))
+      : trimTrailingSlash(resolveGatewayBaseUrl());
+    const apiBaseUrl = mode === "direct" ? `${base}/api` : `${base}/noetl`;
+
+    let displayName = mode === "direct" ? "local" : "gateway";
+    try {
+      const hostname = new URL(base).hostname;
+      if (hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1") {
+        displayName = mode === "direct" ? "kind" : "local";
+      } else if (hostname) {
+        displayName = hostname.split(".")[0] || displayName;
+      }
+    } catch {
+      displayName = mode;
+    }
+
+    return {
+      mode,
+      apiBaseUrl,
+      displayName,
+      allowSkipAuth,
+    };
+  }
+
   private asObject(raw: unknown): Record<string, unknown> {
     return raw !== null && typeof raw === "object" && !Array.isArray(raw)
       ? raw as Record<string, unknown>
