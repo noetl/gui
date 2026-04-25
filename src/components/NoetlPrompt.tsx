@@ -8,14 +8,37 @@ import { ExecutionData, PlaybookData } from "../types";
 
 type PromptTone = "input" | "output" | "error" | "success";
 
+interface PromptAction {
+  label: string;
+  description?: string;
+  command?: string;
+  path?: string;
+}
+
 interface PromptEntry {
   id: number;
   tone: PromptTone;
   prompt?: string;
-  text: string;
+  text?: string;
+  actions?: PromptAction[];
 }
 
 const MAX_LINES = 24;
+const ROUTES: PromptAction[] = [
+  { label: "catalog", path: "/catalog", description: "catalog discovery and playbook launch" },
+  { label: "editor", path: "/editor", description: "playbook editor workspace" },
+  { label: "execution", path: "/execution", description: "execution observability dashboard" },
+  { label: "credentials", path: "/credentials", description: "credential registry" },
+  { label: "travel", path: "/travel", description: "gateway assistant workspace" },
+  { label: "users", path: "/users", description: "user administration" },
+];
+const ROUTE_ALIASES: Record<string, string> = {
+  admin: "/users",
+  build: "/editor",
+  observe: "/execution",
+  operate: "/execution",
+  secrets: "/credentials",
+};
 
 function compactJson(value: unknown, maxLength = 240): string {
   if (value === undefined || value === null || value === "") return "-";
@@ -57,17 +80,48 @@ function parseWorkload(raw: string): Record<string, unknown> {
   return workload;
 }
 
-function summarizePlaybooks(playbooks: PlaybookData[]): string {
-  if (playbooks.length === 0) return "no playbooks found";
-  return playbooks.slice(0, 8).map((playbook) => {
+function summarizePlaybooks(playbooks: PlaybookData[]): { text: string; actions?: PromptAction[] } {
+  if (playbooks.length === 0) return { text: "no playbooks found" };
+  const visible = playbooks.slice(0, 8);
+  return {
+    text: visible.map((playbook) => {
     const description = playbook.payload?.metadata?.description || playbook.payload?.metadata?.name || "";
     return `${playbook.path} :: ${playbook.catalog_id}${description ? ` :: ${description}` : ""}`;
-  }).join("\n");
+    }).join("\n"),
+    actions: visible.map((playbook) => ({
+      label: `run ${playbook.path}`,
+      description: playbook.catalog_id,
+      command: `run ${playbook.path}`,
+    })),
+  };
 }
 
-function summarizeExecutions(executions: ExecutionData[]): string {
-  if (executions.length === 0) return "no executions found";
-  return executions.slice(0, 8).map(formatExecution).join("\n");
+function summarizeExecutions(executions: ExecutionData[]): { text: string; actions?: PromptAction[] } {
+  if (executions.length === 0) return { text: "no executions found" };
+  const visible = executions.slice(0, 8);
+  return {
+    text: visible.map(formatExecution).join("\n"),
+    actions: visible.flatMap((execution) => [
+      {
+        label: `open ${execution.execution_id}`,
+        description: execution.path,
+        path: `/execution/${execution.execution_id}`,
+      },
+      {
+        label: `report ${execution.execution_id}`,
+        command: `report ${execution.execution_id}`,
+      },
+    ]),
+  };
+}
+
+function resolveRoute(target: string): PromptAction | undefined {
+  const normalized = target.trim().replace(/^\/+/, "").toLowerCase();
+  if (!normalized || normalized === "." || normalized === "~" || normalized === "/") {
+    return ROUTES.find((route) => route.path === "/catalog");
+  }
+  const aliased = ROUTE_ALIASES[normalized];
+  return ROUTES.find((route) => route.label === normalized || route.path === `/${normalized}` || route.path === aliased);
 }
 
 const NoetlPrompt: React.FC = () => {
@@ -81,6 +135,11 @@ const NoetlPrompt: React.FC = () => {
       id: 1,
       tone: "output",
       text: "type `help` for playbooks, executions, reports, reruns, and diagnostics",
+      actions: [
+        { label: "menu", command: "menu" },
+        { label: "ls", command: "ls" },
+        { label: "help", command: "help" },
+      ],
     },
   ]);
 
@@ -89,6 +148,17 @@ const NoetlPrompt: React.FC = () => {
 
   const append = (entry: Omit<PromptEntry, "id">) => {
     setHistory((current) => [...current, { ...entry, id: Date.now() + Math.random() }].slice(-MAX_LINES));
+  };
+
+  const handleAction = (action: PromptAction) => {
+    if (action.path) {
+      navigate(action.path);
+      append({ tone: "success", text: `opened ${action.path}` });
+      return;
+    }
+    if (action.command) {
+      runCommand(action.command);
+    }
   };
 
   const resolvePlaybook = async (target: string): Promise<{ catalog_id?: string; path?: string; label: string }> => {
@@ -123,6 +193,10 @@ const NoetlPrompt: React.FC = () => {
           tone: "output",
           text: [
             "context                         show active NoETL API context",
+            "menu                            show clickable navigation menu",
+            "ls                              list current workspace options",
+            "cd <view>                       navigate to catalog/editor/execution/etc",
+            "open <view|execution_id>        open a view or execution detail",
             "status                          check server health",
             "playbooks [query]               discover catalog playbooks",
             "executions [status]             list recent executions",
@@ -133,7 +207,49 @@ const NoetlPrompt: React.FC = () => {
             "stop <execution_id>             stop a running execution",
             "clear                           clear prompt history",
           ].join("\n"),
+          actions: [
+            { label: "menu", command: "menu" },
+            { label: "playbooks", command: "playbooks" },
+            { label: "executions", command: "executions" },
+            { label: "status", command: "status" },
+          ],
         });
+      } else if (verb === "menu") {
+        append({
+          tone: "output",
+          text: "available views",
+          actions: ROUTES,
+        });
+      } else if (verb === "ls") {
+        const currentRoute = ROUTES.find((route) => location.pathname === route.path || location.pathname.startsWith(`${route.path}/`));
+        append({
+          tone: "output",
+          text: currentRoute
+            ? `${currentRoute.label} :: ${currentRoute.description}`
+            : "workspace",
+          actions: [
+            ...ROUTES,
+            { label: "playbooks", command: "playbooks", description: "catalog entries" },
+            { label: "executions", command: "executions", description: "recent execution processes" },
+          ],
+        });
+      } else if (verb === "cd") {
+        const route = resolveRoute(rest);
+        if (!route?.path) throw new Error("usage: cd <catalog|editor|execution|credentials|travel|users>");
+        navigate(route.path);
+        append({ tone: "success", text: `directory changed to ${route.path}` });
+      } else if (verb === "open") {
+        if (!rest) throw new Error("usage: open <view|execution_id>");
+        const route = resolveRoute(rest);
+        if (route?.path) {
+          navigate(route.path);
+          append({ tone: "success", text: `opened ${route.path}` });
+        } else if (/^\d+$/.test(rest)) {
+          navigate(`/execution/${rest}`);
+          append({ tone: "success", text: `opened /execution/${rest}` });
+        } else {
+          throw new Error(`unknown view or execution id: ${rest}`);
+        }
       } else if (verb === "context") {
         append({
           tone: "output",
@@ -144,13 +260,13 @@ const NoetlPrompt: React.FC = () => {
         append({ tone: health.status === "ok" || health.status === "healthy" ? "success" : "output", text: compactJson(health) });
       } else if (verb === "playbooks" || verb === "catalog") {
         const playbooks = rest ? await apiService.searchPlaybooks(rest) : await apiService.getPlaybooks();
-        append({ tone: "output", text: summarizePlaybooks(playbooks) });
+        append({ tone: "output", ...summarizePlaybooks(playbooks) });
       } else if (verb === "executions" || verb === "ps") {
         let executions = await apiService.getExecutions();
         if (rest) {
           executions = executions.filter((execution) => execution.status === rest.toLowerCase());
         }
-        append({ tone: "output", text: summarizeExecutions(executions) });
+        append({ tone: "output", ...summarizeExecutions(executions) });
       } else if (verb === "run") {
         const [target = "", ...payloadParts] = restParts;
         if (!target) throw new Error("usage: run <playbook-path-or-catalog-id> [json|--set key=value]");
@@ -211,7 +327,24 @@ const NoetlPrompt: React.FC = () => {
         {history.map((entry) => (
           <div key={entry.id} className={`noetl-prompt-line ${entry.tone}`}>
             {entry.prompt && <span className="noetl-prompt-prefix">{entry.prompt}</span>}
-            <span className="noetl-prompt-text">{entry.text}</span>
+            <div className="noetl-prompt-result">
+              {entry.text && <span className="noetl-prompt-text">{entry.text}</span>}
+              {entry.actions && entry.actions.length > 0 && (
+                <div className="noetl-prompt-actions">
+                  {entry.actions.map((action) => (
+                    <button
+                      key={`${entry.id}-${action.label}-${action.path || action.command}`}
+                      className="noetl-prompt-action"
+                      type="button"
+                      onClick={() => handleAction(action)}
+                    >
+                      <span>{action.label}</span>
+                      {action.description && <small>{action.description}</small>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         ))}
       </div>

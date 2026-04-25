@@ -211,6 +211,46 @@ html[data-noetl-theme="light"] body {
   min-width: 0;
 }
 
+.noetl-prompt-result {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.noetl-prompt-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.noetl-prompt-action {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  min-height: 30px;
+  border: 1px solid #2f6f2f;
+  background: #071007;
+  color: #d6ffd6;
+  font: inherit;
+  padding: 4px 8px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.noetl-prompt-action:hover,
+.noetl-prompt-action:focus {
+  background: #173d17;
+  border-color: #9cff9c;
+  color: #ffffff;
+  outline: none;
+}
+
+.noetl-prompt-action small {
+  color: #9cff9c;
+  font-size: 11px;
+}
+
 .noetl-prompt-form {
   display: grid;
   grid-template-columns: max-content minmax(180px, 1fr) 40px 40px;
@@ -546,6 +586,23 @@ html[data-noetl-theme="dark"] .ant-picker-cell-selected .ant-picker-cell-inner {
 
 .theme-light .noetl-prompt-form .ant-input::placeholder {
   color: #7b987b;
+}
+
+.theme-light .noetl-prompt-action {
+  background: #ffffff;
+  border-color: #c9d8c9;
+  color: #102010;
+}
+
+.theme-light .noetl-prompt-action:hover,
+.theme-light .noetl-prompt-action:focus {
+  background: #e4f1e4;
+  border-color: #0f6b3a;
+  color: #0f6b3a;
+}
+
+.theme-light .noetl-prompt-action small {
+  color: #587258;
 }
 
 .theme-light .ant-typography code {
