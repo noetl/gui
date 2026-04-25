@@ -487,7 +487,9 @@ const Catalog: React.FC = () => {
                         </Text>
                         <Text type="secondary">
                           Updated:{" "}
-                          {new Date(playbook.meta?.registered_at).toLocaleDateString()}
+                          {playbook.meta?.registered_at
+                            ? new Date(playbook.meta.registered_at).toLocaleDateString()
+                            : "-"}
                         </Text>
                       </Space>
                       {playbook.payload?.metadata?.description && (

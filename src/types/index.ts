@@ -1,6 +1,26 @@
 // Common types used across the application
 
-import Execution from "../components/Execution";
+export type JsonPrimitive = string | number | boolean | null;
+export type JsonValue = JsonPrimitive | JsonValue[] | JsonObject;
+export interface JsonObject {
+  [key: string]: JsonValue | undefined;
+}
+
+export interface PlaybookMetadata extends JsonObject {
+  description?: string;
+  name?: string;
+}
+
+export interface PlaybookPayload extends JsonObject {
+  metadata?: PlaybookMetadata;
+  workflow?: JsonValue[];
+}
+
+export interface PlaybookMeta extends JsonObject {
+  registered_at?: string;
+}
+
+export type ExecutionStatus = "running" | "completed" | "failed" | "pending" | "cancelled";
 
 export interface ServerStatus {
   status: "ok" | "healthy" | "error" | "warning" | string;
@@ -27,10 +47,10 @@ export interface PlaybookData {
   version: string
   kind?: string
   content?: string
-  layout?: any
-  payload?: any
+  layout?: JsonValue
+  payload?: PlaybookPayload
   status: "active" | "inactive" | "draft";
-  meta?: any
+  meta?: PlaybookMeta
   created_at?: string
 }
 
@@ -38,33 +58,48 @@ export interface CredentialData {
   id: string;
   name: string;
   type: string;
-  meta?: any;
+  meta?: JsonValue;
   tags?: string[];
   description?: string;
   created_at: string;
   updated_at: string;
-  data?: Record<string, any>;
+  data?: JsonValue;
 }
 
 export interface ExecutionEvent {
-  event_id: string;
+  execution_id: string;
+  event_id: number;
   event_type: string;
-  node_name: string;
-  status: string;
-  timestamp: string;
-  duration: number;
+  node_id?: string;
+  node_name?: string;
+  status?: string;
+  created_at?: string;
+  timestamp?: string;
+  duration?: number;
+  context?: JsonValue;
+  result?: JsonValue;
+  meta?: JsonValue;
+  input_context?: JsonValue;
+  output_result?: JsonValue;
+  normalized_status?: string;
+  error?: string;
+  catalog_id?: string;
+  parent_execution_id?: string;
+  parent_event_id?: string;
 }
 export interface ExecutionData {
   execution_id: string;
   path: string;
   version: string;
-  status: "RUNNING" | "COMPLETED" | "FAILED" | "PENDING" | "running" | "completed" | "failed" | "pending";
+  status: ExecutionStatus;
   start_time: string;
   end_time?: string;
-  duration?: number;
+  duration_seconds?: number;
+  duration_human?: string;
   progress: number;
-  result?: any;
+  result?: JsonValue;
   error?: string;
+  parent_execution_id?: string;
   events?: Array<ExecutionEvent>;
   pagination?: {
     page: number;
@@ -108,7 +143,7 @@ export interface TableColumn {
   key: string;
   title: string;
   dataIndex: string;
-  render?: (value: any, record: any) => React.ReactNode;
+  render?: (value: unknown, record: unknown) => React.ReactNode;
   sorter?: boolean;
   filterable?: boolean;
   width?: number;
@@ -138,19 +173,19 @@ export interface VisualizationWidget {
     percent?: number;
     status?: string;
     description?: string;
-    rows?: any[];        // table rows
-    items?: any[];       // list items
+    rows?: JsonValue[];  // table rows
+    items?: JsonValue[]; // list items
     html?: string;       // rich text / markdown rendered as HTML
-    [key: string]: any;  // allow future extensions
+    [key: string]: JsonValue | undefined;
   };
   // Configuration block controlling display and formatting
   config: {
     format?: 'percentage' | 'number' | string;
     color?: string;
-    pagination?: any;         // Ant Design table pagination settings or false
+    pagination?: JsonValue;   // Ant Design table pagination settings or false
     columns?: TableColumn[];  // Table column definitions
     height?: number;          // Chart / container height
     chartType?: string;       // For chart placeholder (line, bar, etc.)
-    [key: string]: any;       // Additional feature flags
+    [key: string]: JsonValue | TableColumn[] | undefined;
   };
 }

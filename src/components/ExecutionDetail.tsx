@@ -227,12 +227,12 @@ const ExecutionDetail: React.FC = () => {
       // Event type multi-select
       if (eventTypeSet && !eventTypeSet.has(e.event_type)) continue;
       // Status multi-select
-      if (statusSet && !statusSet.has(e.status)) continue;
+      if (statusSet && (!e.status || !statusSet.has(e.status))) continue;
       // Node filter
       if (loweredNode && !e.node_name?.toLowerCase().includes(loweredNode)) continue;
       // Date range filter
       if (wantsDateRange) {
-        const ts = new Date(e.timestamp).getTime();
+        const ts = new Date(e.timestamp || e.created_at || 0).getTime();
         if (ts < startMs || ts > endMs) continue;
       }
       // Search text (checks several fields lowercased once each)

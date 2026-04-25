@@ -2,6 +2,9 @@ import axios from "axios";
 import {
   DashboardStats,
   ExecutionData,
+  ExecutionEvent,
+  ExecutionStatus,
+  JsonValue,
   PlaybookData,
   ServerStatus,
   CredentialData,
@@ -130,17 +133,76 @@ apiClient.interceptors.response.use(
 // }
 
 class APIService {
-  private normalizeExecution(raw: any): ExecutionData {
-    const normalizedStatus =
-      typeof raw?.status === "string" ? raw.status.toLowerCase() : raw?.status;
+  private asObject(raw: unknown): Record<string, unknown> {
+    return raw !== null && typeof raw === "object" && !Array.isArray(raw)
+      ? raw as Record<string, unknown>
+      : {};
+  }
+
+  private asString(value: unknown, fallback = ""): string {
+    return value == null ? fallback : String(value);
+  }
+
+  private normalizeExecutionStatus(value: unknown): ExecutionStatus {
+    const status = typeof value === "string" ? value.toLowerCase() : "";
+    if (status === "completed" || status === "failed" || status === "pending" || status === "cancelled") {
+      return status;
+    }
+    return "running";
+  }
+
+  private normalizeJsonValue(value: unknown): JsonValue | undefined {
+    if (value === undefined) return undefined;
+    return value as JsonValue;
+  }
+
+  private normalizeExecutionEvent(raw: unknown): ExecutionEvent {
+    const event = this.asObject(raw);
     return {
-      ...raw,
-      execution_id: raw?.execution_id != null ? String(raw.execution_id) : "",
-      status: normalizedStatus,
+      execution_id: this.asString(event.execution_id),
+      event_id: Number(event.event_id || 0),
+      event_type: this.asString(event.event_type),
+      node_id: event.node_id == null ? undefined : String(event.node_id),
+      node_name: event.node_name == null ? undefined : String(event.node_name),
+      status: event.status == null ? undefined : String(event.status),
+      created_at: event.created_at == null ? undefined : String(event.created_at),
+      timestamp: event.timestamp == null ? undefined : String(event.timestamp),
+      duration: event.duration == null ? undefined : Number(event.duration),
+      context: this.normalizeJsonValue(event.context),
+      result: this.normalizeJsonValue(event.result),
+      error: event.error == null ? undefined : String(event.error),
+      catalog_id: event.catalog_id == null ? undefined : String(event.catalog_id),
+      parent_execution_id: event.parent_execution_id == null ? undefined : String(event.parent_execution_id),
+      parent_event_id: event.parent_event_id == null ? undefined : String(event.parent_event_id),
     };
   }
 
-  private normalizeExecutionList(rawList: any): ExecutionData[] {
+  private normalizeExecution(raw: unknown): ExecutionData {
+    const item = this.asObject(raw);
+    const events = Array.isArray(item.events)
+      ? item.events.map((event) => this.normalizeExecutionEvent(event))
+      : undefined;
+    const normalizedStatus =
+      this.normalizeExecutionStatus(item.status);
+    return {
+      execution_id: this.asString(item.execution_id),
+      path: this.asString(item.path, "unknown"),
+      version: this.asString(item.version, "0"),
+      status: normalizedStatus,
+      start_time: this.asString(item.start_time),
+      end_time: item.end_time == null ? undefined : String(item.end_time),
+      duration_seconds: item.duration_seconds == null ? undefined : Number(item.duration_seconds),
+      duration_human: item.duration_human == null ? undefined : String(item.duration_human),
+      progress: Number(item.progress || (["completed", "failed", "cancelled"].includes(normalizedStatus) ? 100 : 0)),
+      result: this.normalizeJsonValue(item.result),
+      error: item.error == null ? undefined : String(item.error),
+      parent_execution_id: item.parent_execution_id == null ? undefined : String(item.parent_execution_id),
+      events,
+      pagination: item.pagination as ExecutionData["pagination"],
+    };
+  }
+
+  private normalizeExecutionList(rawList: unknown): ExecutionData[] {
     if (!Array.isArray(rawList)) return [];
     return rawList.map((item) => this.normalizeExecution(item));
   }

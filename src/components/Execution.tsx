@@ -285,6 +285,10 @@ const Execution: React.FC = () => {
     }
   };
 
+  const getExecutionDuration = (record: ExecutionData) => {
+    return record.duration_human || formatDuration(record.start_time, record.end_time);
+  };
+
   const parsePlaybookContent = (content: string): TaskNode[] => {
     try {
       console.log("🔍 PARSING PLAYBOOK CONTENT");
@@ -585,7 +589,7 @@ const Execution: React.FC = () => {
       title: "Duration",
       key: "duration",
       render: (record: ExecutionData) =>
-        formatDuration(record.start_time, record.end_time),
+        getExecutionDuration(record),
     },
     {
       title: "Actions",
@@ -690,7 +694,7 @@ const Execution: React.FC = () => {
         <Space direction="vertical" size="large" className="execution-space-vertical">
           <Row justify="space-between" align="middle">
             <Col>
-              <Title level={2}>⚡ Execution History</Title>
+              <Title level={2}>Observability</Title>
             </Col>
             <Col>
               <Button
@@ -704,8 +708,7 @@ const Execution: React.FC = () => {
             </Col>
           </Row>
 
-          {/* Event Type Filtering Section */}
-          <Card title={<><FilterOutlined /> Event Type Filters</>} size="small">
+          <Card title={<><FilterOutlined /> Execution Filters</>} size="small">
             <Space direction="vertical" className="execution-filter-space">
               {/* Tabs for main event types */}
               <Tabs
@@ -713,7 +716,7 @@ const Execution: React.FC = () => {
                 onChange={setActiveTab}
                 size="small"
               >
-                <TabPane tab="All Events" key="all" />
+                <TabPane tab="All Executions" key="all" />
                 <TabPane tab={`Running (${executions.filter(e => e.status === "running").length})`} key="running" />
                 <TabPane tab={`Pending (${executions.filter(e => e.status === "pending").length})`} key="pending" />
                 <TabPane tab={`Completed (${executions.filter(e => e.status === "completed").length})`} key="completed" />

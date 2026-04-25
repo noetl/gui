@@ -21,6 +21,15 @@ import ExecutionDetail from "./components/ExecutionDetail";
 import GatewayLogin from "./components/GatewayLogin";
 import GatewayAssistant from "./components/GatewayAssistant";
 import UserManagement from "./components/UserManagement";
+import {
+  AppstoreOutlined,
+  CodeOutlined,
+  DatabaseOutlined,
+  EyeOutlined,
+  KeyOutlined,
+  LogoutOutlined,
+  TeamOutlined,
+} from "@ant-design/icons";
 
 // Import auth functions
 import { isAuthenticated, getUserInfo, validateSession, logout, isDevSkipAuth, type GatewayUser } from "./services/gatewayAuth";
@@ -38,17 +47,19 @@ type MenuItem = {
   key: string;
   label: string;
   path: string;
+  section: "Catalog" | "Build" | "Operate" | "Admin";
+  icon: React.ReactNode;
   roles: string[]; // empty array means all authenticated users, specific roles restrict access
   adminOnly?: boolean; // if true, only admin can see
 };
 
 const ALL_MENU_ITEMS: MenuItem[] = [
-  { key: "/catalog", label: "Catalog", path: "/catalog", roles: [], adminOnly: true },
-  { key: "/credentials", label: "Credentials", path: "/credentials", roles: [], adminOnly: true },
-  { key: "/editor", label: "Editor", path: "/editor", roles: [], adminOnly: true },
-  { key: "/execution", label: "Execution", path: "/execution", roles: [], adminOnly: true },
-  { key: "/travel", label: "Travel", path: "/travel", roles: ["analyst", "viewer", "developer", "admin"] },
-  { key: "/users", label: "Users", path: "/users", roles: [], adminOnly: true },
+  { key: "/catalog", label: "Catalog Discovery", path: "/catalog", section: "Catalog", icon: <AppstoreOutlined />, roles: [], adminOnly: true },
+  { key: "/execution", label: "Observability", path: "/execution", section: "Operate", icon: <EyeOutlined />, roles: [], adminOnly: true },
+  { key: "/editor", label: "Playbook Editor", path: "/editor", section: "Build", icon: <CodeOutlined />, roles: [], adminOnly: true },
+  { key: "/credentials", label: "Credentials", path: "/credentials", section: "Admin", icon: <KeyOutlined />, roles: [], adminOnly: true },
+  { key: "/travel", label: "Travel Assistant", path: "/travel", section: "Operate", icon: <DatabaseOutlined />, roles: ["analyst", "viewer", "developer", "admin"] },
+  { key: "/users", label: "Users", path: "/users", section: "Admin", icon: <TeamOutlined />, roles: [], adminOnly: true },
 ];
 
 function hasAccess(item: MenuItem, userRoles: string[]): boolean {
@@ -179,6 +190,42 @@ const AuthenticatedApp: React.FC = () => {
     return match?.key || "";
   }, [location.pathname, visibleMenuItems]);
 
+  const handleLogout = () => {
+    logout();
+    navigate("/login", { replace: true });
+  };
+
+  const menuItems = useMemo(() => {
+    const sectionOrder: MenuItem["section"][] = ["Catalog", "Build", "Operate", "Admin"];
+    return [
+      ...sectionOrder
+        .map((section) => {
+          const children = visibleMenuItems
+            .filter((item) => item.section === section)
+            .map((item) => ({
+              key: item.key,
+              icon: item.icon,
+              label: item.label,
+              onClick: () => navigate(item.path),
+            }));
+          if (children.length === 0) return null;
+          return {
+            key: `section:${section}`,
+            label: section,
+            children,
+          };
+        })
+        .filter((item): item is NonNullable<typeof item> => item !== null),
+      {
+        key: "logout",
+        icon: <LogoutOutlined />,
+        label: "Logout",
+        onClick: handleLogout,
+        style: { marginLeft: "auto" },
+      },
+    ];
+  }, [visibleMenuItems, navigate]);
+
   if (loading) {
     return (
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -187,34 +234,17 @@ const AuthenticatedApp: React.FC = () => {
     );
   }
 
-  const handleLogout = () => {
-    logout();
-    navigate("/login", { replace: true });
-  };
-
   return (
     <Layout className="app" style={{ minHeight: "100vh", background: "#f5f5f5" }}>
       <Header className="app-header">
         <div className="header-inner">
-          <div className="logo">NoETL Dashboard</div>
+          <div className="logo">NoETL</div>
           <Menu
             theme="light"
             mode="horizontal"
             selectedKeys={[activeMenuKey]}
             className="centered-menu"
-            items={[
-              ...visibleMenuItems.map((item) => ({
-                key: item.key,
-                label: item.label,
-                onClick: () => navigate(item.path),
-              })),
-              {
-                key: "logout",
-                label: "Logout",
-                onClick: handleLogout,
-                style: { marginLeft: "auto" },
-              },
-            ]}
+            items={menuItems}
           />
         </div>
       </Header>
