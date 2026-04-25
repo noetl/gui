@@ -11,6 +11,16 @@ body {
   line-height: 1.45;
 }
 
+html[data-noetl-theme="dark"],
+html[data-noetl-theme="dark"] body {
+  background: #050805;
+}
+
+html[data-noetl-theme="light"],
+html[data-noetl-theme="light"] body {
+  background: #f5f7f5;
+}
+
 /* ==========================================================================
    ReactFlow Edge Styles - Solid Lines
    ========================================================================== */
@@ -67,9 +77,10 @@ body {
 .header-inner {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   width: 100%;
   position: relative;
+  gap: 12px;
 }
 
 .logo {
@@ -85,9 +96,10 @@ body {
 }
 
 .centered-menu {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+  position: static;
+  flex: 1 1 auto;
+  justify-content: center;
+  min-width: 0;
   background: transparent;
   border-bottom: none;
   font-size: 13px;
@@ -112,6 +124,26 @@ body {
 
 .centered-menu .ant-menu-item-selected {
   background-color: #173d17 !important;
+  color: #ffffff !important;
+}
+
+.theme-switch {
+  margin-left: auto;
+  flex-shrink: 0;
+  border: 1px solid #2f6f2f;
+  border-radius: 0 !important;
+  background: #020402 !important;
+  color: #9cff9c;
+  text-transform: uppercase;
+}
+
+.theme-switch .ant-segmented-item {
+  border-radius: 0 !important;
+  color: #9cff9c !important;
+}
+
+.theme-switch .ant-segmented-item-selected {
+  background: #173d17 !important;
   color: #ffffff !important;
 }
 
@@ -250,4 +282,210 @@ body {
 
 .ant-progress-inner {
   background: #020402 !important;
+}
+
+html[data-noetl-theme="dark"] .ant-dropdown,
+html[data-noetl-theme="dark"] .ant-dropdown-menu,
+html[data-noetl-theme="dark"] .ant-dropdown-menu-submenu-popup,
+html[data-noetl-theme="dark"] .ant-menu-submenu-popup,
+html[data-noetl-theme="dark"] .ant-menu-sub,
+html[data-noetl-theme="dark"] .ant-select-dropdown,
+html[data-noetl-theme="dark"] .ant-picker-dropdown,
+html[data-noetl-theme="dark"] .ant-picker-panel,
+html[data-noetl-theme="dark"] .ant-picker-header,
+html[data-noetl-theme="dark"] .ant-popover-inner,
+html[data-noetl-theme="dark"] .ant-tooltip-inner {
+  background: #071007 !important;
+  border-color: #2f6f2f !important;
+  border-radius: 0 !important;
+  color: #9cff9c !important;
+}
+
+html[data-noetl-theme="dark"] .ant-dropdown-menu-item,
+html[data-noetl-theme="dark"] .ant-dropdown-menu-submenu-title,
+html[data-noetl-theme="dark"] .ant-menu-submenu-popup .ant-menu-item,
+html[data-noetl-theme="dark"] .ant-select-item,
+html[data-noetl-theme="dark"] .ant-picker-cell,
+html[data-noetl-theme="dark"] .ant-picker-content th {
+  color: #9cff9c !important;
+}
+
+html[data-noetl-theme="dark"] .ant-dropdown-menu-item:hover,
+html[data-noetl-theme="dark"] .ant-dropdown-menu-submenu-title:hover,
+html[data-noetl-theme="dark"] .ant-menu-submenu-popup .ant-menu-item:hover,
+html[data-noetl-theme="dark"] .ant-select-item-option-active,
+html[data-noetl-theme="dark"] .ant-select-item-option-selected,
+html[data-noetl-theme="dark"] .ant-picker-cell-inner:hover,
+html[data-noetl-theme="dark"] .ant-picker-cell-selected .ant-picker-cell-inner {
+  background: #173d17 !important;
+  color: #ffffff !important;
+}
+
+.theme-dark .ant-table-expanded-row > td,
+.theme-dark .ant-table-expanded-row-fixed,
+.theme-dark .ant-table-tbody > tr.ant-table-expanded-row > td,
+.theme-dark .execution-detail-expanded,
+.theme-dark .execution-detail-result,
+.theme-dark .execution-detail-json-wrapper {
+  background: #020402 !important;
+  border-color: #2f6f2f !important;
+  color: #d6ffd6 !important;
+}
+
+.theme-dark .execution-detail-pre,
+.theme-dark .execution-detail-label,
+.theme-dark .execution-detail-value,
+.theme-dark .execution-detail-expand-icon,
+.theme-dark .execution-detail-expand-button {
+  color: #d6ffd6 !important;
+}
+
+.theme-dark .execution-detail-expand-icon:hover {
+  background: #173d17 !important;
+}
+
+.theme-light.terminal-app {
+  background: #f5f7f5 !important;
+  color: #102010;
+}
+
+.theme-light .app-header {
+  background: #ffffff;
+  border-color: #c9d8c9;
+  border-left-color: #0f6b3a;
+}
+
+.theme-light .logo,
+.theme-light .terminal-panel::before {
+  color: #102010;
+}
+
+.theme-light .centered-menu .ant-menu-item,
+.theme-light .centered-menu .ant-menu-submenu-title,
+.theme-light .ant-typography,
+.theme-light .ant-statistic-title,
+.theme-light .ant-statistic-content,
+.theme-light .ant-tabs-tab,
+.theme-light .ant-tabs-tab-btn,
+.theme-light .ant-form-item-label > label,
+.theme-light .ant-select-selection-item,
+.theme-light .ant-select-selection-placeholder,
+.theme-light .ant-picker-input > input,
+.theme-light .ant-input,
+.theme-light .ant-input-affix-wrapper,
+.theme-light .ant-pagination,
+.theme-light .ant-pagination-item a,
+.theme-light .ant-empty-description {
+  color: #102010 !important;
+}
+
+.theme-light .centered-menu .ant-menu-item:hover,
+.theme-light .centered-menu .ant-menu-submenu-title:hover,
+.theme-light .centered-menu .ant-menu-item-selected {
+  background: #e4f1e4 !important;
+  color: #0f6b3a !important;
+}
+
+.theme-light .terminal-panel,
+.theme-light .ant-card,
+.theme-light .ant-modal-content,
+.theme-light .ant-table,
+.theme-light .ant-table-container {
+  background: #ffffff !important;
+  border-color: #c9d8c9 !important;
+  color: #102010 !important;
+}
+
+.theme-light .ant-card-head,
+.theme-light .ant-table-thead > tr > th {
+  background: #eef5ee !important;
+  border-color: #c9d8c9 !important;
+  color: #102010 !important;
+}
+
+.theme-light .ant-table-tbody > tr > td,
+.theme-light .ant-table-expanded-row > td,
+.theme-light .ant-table-expanded-row-fixed {
+  background: #ffffff !important;
+  border-color: #dce7dc !important;
+  color: #102010 !important;
+}
+
+.theme-light .ant-table-tbody > tr:hover > td {
+  background: #f0f7f0 !important;
+}
+
+.theme-light .ant-input,
+.theme-light .ant-input-affix-wrapper,
+.theme-light .ant-select-selector,
+.theme-light .ant-picker,
+.theme-light .execution-detail-result,
+.theme-light .execution-detail-json-wrapper {
+  background: #ffffff !important;
+  border-color: #c9d8c9 !important;
+  color: #102010 !important;
+}
+
+.theme-light .ant-btn,
+.theme-light .theme-switch {
+  background: #ffffff !important;
+  border-color: #8fb58f !important;
+  color: #102010 !important;
+}
+
+.theme-light .ant-btn:hover,
+.theme-light .ant-btn:focus,
+.theme-light .theme-switch .ant-segmented-item-selected {
+  background: #e4f1e4 !important;
+  border-color: #0f6b3a !important;
+  color: #0f6b3a !important;
+}
+
+.theme-light .ant-tag {
+  background: #eef5ee !important;
+  border-color: #8fb58f !important;
+  color: #102010 !important;
+}
+
+.theme-light .ant-typography code {
+  background: #f7fbf7 !important;
+  border-color: #c9d8c9 !important;
+  color: #102010 !important;
+}
+
+html[data-noetl-theme="light"] .ant-dropdown,
+html[data-noetl-theme="light"] .ant-dropdown-menu,
+html[data-noetl-theme="light"] .ant-dropdown-menu-submenu-popup,
+html[data-noetl-theme="light"] .ant-menu-submenu-popup,
+html[data-noetl-theme="light"] .ant-menu-sub,
+html[data-noetl-theme="light"] .ant-select-dropdown,
+html[data-noetl-theme="light"] .ant-picker-dropdown,
+html[data-noetl-theme="light"] .ant-picker-panel,
+html[data-noetl-theme="light"] .ant-picker-header,
+html[data-noetl-theme="light"] .ant-popover-inner,
+html[data-noetl-theme="light"] .ant-tooltip-inner {
+  background: #ffffff !important;
+  border-color: #c9d8c9 !important;
+  border-radius: 0 !important;
+  color: #102010 !important;
+}
+
+html[data-noetl-theme="light"] .ant-dropdown-menu-item,
+html[data-noetl-theme="light"] .ant-dropdown-menu-submenu-title,
+html[data-noetl-theme="light"] .ant-menu-submenu-popup .ant-menu-item,
+html[data-noetl-theme="light"] .ant-select-item,
+html[data-noetl-theme="light"] .ant-picker-cell,
+html[data-noetl-theme="light"] .ant-picker-content th {
+  color: #102010 !important;
+}
+
+html[data-noetl-theme="light"] .ant-dropdown-menu-item:hover,
+html[data-noetl-theme="light"] .ant-dropdown-menu-submenu-title:hover,
+html[data-noetl-theme="light"] .ant-menu-submenu-popup .ant-menu-item:hover,
+html[data-noetl-theme="light"] .ant-select-item-option-active,
+html[data-noetl-theme="light"] .ant-select-item-option-selected,
+html[data-noetl-theme="light"] .ant-picker-cell-inner:hover,
+html[data-noetl-theme="light"] .ant-picker-cell-selected .ant-picker-cell-inner {
+  background: #e4f1e4 !important;
+  color: #0f6b3a !important;
 }

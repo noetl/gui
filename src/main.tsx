@@ -10,7 +10,7 @@ import {
   useLocation,
   Navigate,
 } from "react-router-dom";
-import { Layout, Menu, ConfigProvider, Result, Button, App as AntdApp, Spin } from "antd";
+import { Layout, Menu, ConfigProvider, Result, Button, App as AntdApp, Spin, Segmented } from "antd";
 
 // Import components
 import Catalog from "./components/Catalog";
@@ -40,6 +40,36 @@ import "antd/dist/reset.css";
 import "../static/css/main.css";
 
 const { Header, Content, Footer } = Layout;
+type AppTheme = "dark" | "light";
+const THEME_STORAGE_KEY = "noetl-ui-theme";
+
+function readStoredTheme(): AppTheme {
+  if (typeof window === "undefined") return "dark";
+  return window.localStorage.getItem(THEME_STORAGE_KEY) === "light" ? "light" : "dark";
+}
+
+const appThemeTokens: Record<AppTheme, {
+  colorBgContainer: string;
+  colorBgLayout: string;
+  colorBorder: string;
+  colorPrimary: string;
+  colorText: string;
+}> = {
+  dark: {
+    colorPrimary: "#6fdc6f",
+    colorBgContainer: "#071007",
+    colorBgLayout: "#050805",
+    colorText: "#9cff9c",
+    colorBorder: "#2f6f2f",
+  },
+  light: {
+    colorPrimary: "#0f6b3a",
+    colorBgContainer: "#ffffff",
+    colorBgLayout: "#f5f7f5",
+    colorText: "#102010",
+    colorBorder: "#c9d8c9",
+  },
+};
 
 // Define menu items with required roles
 // admin: sees all, developer: sees noetl tools, analyst/viewer: sees travel only
@@ -138,7 +168,10 @@ const LoginPage: React.FC = () => {
 };
 
 // Main authenticated app with menu
-const AuthenticatedApp: React.FC = () => {
+const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: AppTheme) => void }> = ({
+  appTheme,
+  onThemeChange,
+}) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [user, setUser] = useState<GatewayUser | null>(null);
@@ -235,7 +268,7 @@ const AuthenticatedApp: React.FC = () => {
   }
 
   return (
-    <Layout className="app terminal-app" style={{ minHeight: "100vh" }}>
+    <Layout className={`app terminal-app theme-${appTheme}`} style={{ minHeight: "100vh" }}>
       <Header className="app-header">
         <div className="header-inner">
           <div className="logo">NOETL://LOCAL</div>
@@ -245,6 +278,16 @@ const AuthenticatedApp: React.FC = () => {
             selectedKeys={[activeMenuKey]}
             className="centered-menu"
             items={menuItems}
+          />
+          <Segmented<AppTheme>
+            className="theme-switch"
+            size="small"
+            value={appTheme}
+            options={[
+              { label: "dark", value: "dark" },
+              { label: "white", value: "light" },
+            ]}
+            onChange={onThemeChange}
           />
         </div>
       </Header>
@@ -277,7 +320,6 @@ const AuthenticatedApp: React.FC = () => {
         style={{
           textAlign: "center",
           background: "transparent",
-          color: "#8c8c8c",
           fontSize: "14px",
         }}
       >
@@ -289,23 +331,31 @@ const AuthenticatedApp: React.FC = () => {
 
 // Root App component - handles routing between login and authenticated app
 const App: React.FC = () => {
+  const [appTheme, setAppTheme] = useState<AppTheme>(() => readStoredTheme());
+  const tokens = appThemeTokens[appTheme];
+
+  useEffect(() => {
+    window.localStorage.setItem(THEME_STORAGE_KEY, appTheme);
+    document.documentElement.dataset.noetlTheme = appTheme;
+  }, [appTheme]);
+
   return (
     <ConfigProvider
       theme={{
         token: {
-          colorPrimary: "#1890ff",
+          colorPrimary: tokens.colorPrimary,
           borderRadius: 0,
-          colorBgContainer: "#071007",
-          colorBgLayout: "#050805",
-          colorText: "#9cff9c",
-          colorBorder: "#2f6f2f",
+          colorBgContainer: tokens.colorBgContainer,
+          colorBgLayout: tokens.colorBgLayout,
+          colorText: tokens.colorText,
+          colorBorder: tokens.colorBorder,
         },
       }}
     >
       <AntdApp>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/*" element={<AuthenticatedApp />} />
+          <Route path="/*" element={<AuthenticatedApp appTheme={appTheme} onThemeChange={setAppTheme} />} />
         </Routes>
       </AntdApp>
     </ConfigProvider>
