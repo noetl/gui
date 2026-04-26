@@ -2,6 +2,7 @@
 set -eu
 
 ENV_FILE="/usr/share/nginx/html/env-config.js"
+INDEX_FILE="/usr/share/nginx/html/index.html"
 
 json_escape() {
   printf '%s' "$1" | awk '
@@ -30,3 +31,8 @@ window.__NOETL_ENV__ = {
   "VITE_AUTH0_REDIRECT_URI": "$(json_escape "${VITE_AUTH0_REDIRECT_URI:-}")"
 };
 EOF
+
+if [ -f "$INDEX_FILE" ]; then
+  cache_buster="$(date +%s)"
+  sed -i -E "s|<script src=\"/env-config.js(\\?v=[^\"]*)?\"></script>|<script src=\"/env-config.js?v=${cache_buster}\"></script>|" "$INDEX_FILE"
+fi
