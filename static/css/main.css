@@ -63,15 +63,18 @@ html[data-noetl-theme="light"] body {
 
 .app-header {
   background: #071007;
-  padding: 0 20px;
-  height: 56px;
+  padding: 10px 20px;
+  height: auto;
+  min-height: 56px;
   margin: 16px 16px 0;
   box-shadow: none;
   border-radius: 0;
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
   border: 1px solid #2f6f2f;
   border-left: 4px solid #9cff9c;
+  gap: 10px;
 }
 
 .header-inner {
@@ -147,8 +150,24 @@ html[data-noetl-theme="light"] body {
   color: #ffffff !important;
 }
 
+.console-header-collapsed {
+  gap: 0;
+}
+
+.console-header-toolbar {
+  min-height: 34px;
+}
+
+.console-header-toolbar .ant-btn {
+  text-transform: uppercase;
+}
+
+.header-prompt {
+  margin-bottom: 0 !important;
+}
+
 .terminal-content {
-  padding: 16px;
+  padding: 0 16px 16px;
   margin: 0;
 }
 
@@ -216,6 +235,38 @@ html[data-noetl-theme="light"] body {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  flex: 1 1 auto;
+}
+
+.noetl-prompt-result-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.noetl-prompt-line-tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.noetl-prompt-tool {
+  width: 24px;
+  height: 24px;
+  border: 1px solid #2f6f2f;
+  background: #071007;
+  color: #d6ffd6;
+  cursor: pointer;
+  font: inherit;
+  line-height: 1;
+}
+
+.noetl-prompt-tool:hover,
+.noetl-prompt-tool:focus {
+  background: #173d17;
+  border-color: #9cff9c;
+  outline: none;
 }
 
 .noetl-prompt-actions {
@@ -279,6 +330,32 @@ html[data-noetl-theme="light"] body {
   .noetl-prompt-form label {
     grid-column: 1 / -1;
   }
+}
+
+.dashboard-window {
+  border-top: 1px solid #9cff9c;
+  margin-top: 0;
+}
+
+.dashboard-window-bar,
+.dashboard-window-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid #1e471e;
+  color: #d6ffd6;
+  margin: -4px -4px 16px;
+  padding: 0 0 10px;
+  text-transform: uppercase;
+}
+
+.dashboard-window-toggle {
+  background: #071007;
+  border: 1px solid #2f6f2f;
+  border-top-color: #9cff9c;
+  margin: 0;
+  padding: 12px;
 }
 
 .ant-layout,
@@ -603,6 +680,34 @@ html[data-noetl-theme="dark"] .ant-picker-cell-selected .ant-picker-cell-inner {
 
 .theme-light .noetl-prompt-action small {
   color: #587258;
+}
+
+.theme-light .noetl-prompt-tool {
+  background: #ffffff;
+  border-color: #c9d8c9;
+  color: #102010;
+}
+
+.theme-light .noetl-prompt-tool:hover,
+.theme-light .noetl-prompt-tool:focus {
+  background: #e4f1e4;
+  border-color: #0f6b3a;
+  color: #0f6b3a;
+}
+
+.theme-light .dashboard-window {
+  border-top-color: #0f6b3a;
+}
+
+.theme-light .dashboard-window-bar,
+.theme-light .dashboard-window-toggle {
+  border-color: #c9d8c9;
+  color: #102010;
+}
+
+.theme-light .dashboard-window-toggle {
+  background: #ffffff;
+  border-top-color: #0f6b3a;
 }
 
 .theme-light .ant-typography code {

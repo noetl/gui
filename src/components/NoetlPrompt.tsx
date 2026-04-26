@@ -21,9 +21,12 @@ interface PromptEntry {
   prompt?: string;
   text?: string;
   actions?: PromptAction[];
+  collapsed?: boolean;
 }
 
 const MAX_LINES = 24;
+const COLLAPSED_TEXT_LENGTH = 360;
+const COLLAPSED_ACTION_COUNT = 5;
 const ROUTES: PromptAction[] = [
   { label: "catalog", path: "/catalog", description: "catalog discovery and playbook launch" },
   { label: "editor", path: "/editor", description: "playbook editor workspace" },
@@ -39,6 +42,10 @@ const ROUTE_ALIASES: Record<string, string> = {
   operate: "/execution",
   secrets: "/credentials",
 };
+
+interface NoetlPromptProps {
+  className?: string;
+}
 
 function compactJson(value: unknown, maxLength = 240): string {
   if (value === undefined || value === null || value === "") return "-";
@@ -124,7 +131,12 @@ function resolveRoute(target: string): PromptAction | undefined {
   return ROUTES.find((route) => route.label === normalized || route.path === `/${normalized}` || route.path === aliased);
 }
 
-const NoetlPrompt: React.FC = () => {
+function getCollapsedText(text: string): string {
+  if (text.length <= COLLAPSED_TEXT_LENGTH) return text;
+  return `${text.slice(0, COLLAPSED_TEXT_LENGTH - 3)}...`;
+}
+
+const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const inputRef = useRef<InputRef>(null);
@@ -148,6 +160,14 @@ const NoetlPrompt: React.FC = () => {
 
   const append = (entry: Omit<PromptEntry, "id">) => {
     setHistory((current) => [...current, { ...entry, id: Date.now() + Math.random() }].slice(-MAX_LINES));
+  };
+
+  const updateEntry = (id: number, patch: Partial<PromptEntry>) => {
+    setHistory((current) => current.map((entry) => entry.id === id ? { ...entry, ...patch } : entry));
+  };
+
+  const removeEntry = (id: number) => {
+    setHistory((current) => current.filter((entry) => entry.id !== id));
   };
 
   const handleAction = (action: PromptAction) => {
@@ -322,28 +342,68 @@ const NoetlPrompt: React.FC = () => {
   };
 
   return (
-    <section className="noetl-prompt" aria-label="NoETL command prompt">
+    <section className={`noetl-prompt${className ? ` ${className}` : ""}`} aria-label="NoETL command prompt">
       <div className="noetl-prompt-history">
         {history.map((entry) => (
           <div key={entry.id} className={`noetl-prompt-line ${entry.tone}`}>
             {entry.prompt && <span className="noetl-prompt-prefix">{entry.prompt}</span>}
             <div className="noetl-prompt-result">
-              {entry.text && <span className="noetl-prompt-text">{entry.text}</span>}
-              {entry.actions && entry.actions.length > 0 && (
-                <div className="noetl-prompt-actions">
-                  {entry.actions.map((action) => (
-                    <button
-                      key={`${entry.id}-${action.label}-${action.path || action.command}`}
-                      className="noetl-prompt-action"
-                      type="button"
-                      onClick={() => handleAction(action)}
-                    >
-                      <span>{action.label}</span>
-                      {action.description && <small>{action.description}</small>}
-                    </button>
-                  ))}
-                </div>
-              )}
+              {(() => {
+                const text = entry.text || "";
+                const textOverflows = text.length > COLLAPSED_TEXT_LENGTH;
+                const actions = entry.actions || [];
+                const actionsOverflow = actions.length > COLLAPSED_ACTION_COUNT;
+                const visibleActions = entry.collapsed ? actions.slice(0, COLLAPSED_ACTION_COUNT) : actions;
+                const visibleText = entry.collapsed ? getCollapsedText(text) : text;
+                const canToggle = textOverflows || actionsOverflow;
+
+                return (
+                  <>
+                    <div className="noetl-prompt-result-head">
+                      {visibleText && <span className="noetl-prompt-text">{visibleText}</span>}
+                      {!entry.prompt && (
+                        <div className="noetl-prompt-line-tools">
+                          {canToggle && (
+                            <button
+                              aria-label={entry.collapsed ? "Show more output" : "Show less output"}
+                              className="noetl-prompt-tool"
+                              onClick={() => updateEntry(entry.id, { collapsed: !entry.collapsed })}
+                              title={entry.collapsed ? "show more" : "show less"}
+                              type="button"
+                            >
+                              {entry.collapsed ? "+" : "-"}
+                            </button>
+                          )}
+                          <button
+                            aria-label="Close output"
+                            className="noetl-prompt-tool"
+                            onClick={() => removeEntry(entry.id)}
+                            title="close"
+                            type="button"
+                          >
+                            x
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    {visibleActions.length > 0 && (
+                      <div className="noetl-prompt-actions">
+                        {visibleActions.map((action) => (
+                          <button
+                            key={`${entry.id}-${action.label}-${action.path || action.command}`}
+                            className="noetl-prompt-action"
+                            type="button"
+                            onClick={() => handleAction(action)}
+                          >
+                            <span>{action.label}</span>
+                            {action.description && <small>{action.description}</small>}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           </div>
         ))}

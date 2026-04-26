@@ -10,7 +10,7 @@ import {
   useLocation,
   Navigate,
 } from "react-router-dom";
-import { Layout, Menu, ConfigProvider, Result, Button, App as AntdApp, Spin, Segmented } from "antd";
+import { Layout, ConfigProvider, Result, Button, App as AntdApp, Spin, Segmented } from "antd";
 
 // Import components
 import Catalog from "./components/Catalog";
@@ -177,6 +177,8 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
   const location = useLocation();
   const [user, setUser] = useState<GatewayUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [consoleVisible, setConsoleVisible] = useState(true);
+  const [dashboardVisible, setDashboardVisible] = useState(true);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -218,47 +220,10 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
     return ALL_MENU_ITEMS.filter((item) => hasAccess(item, userRoles));
   }, [userRoles]);
 
-  const activeMenuKey = useMemo(() => {
-    // Find the menu item that matches current path
-    const match = visibleMenuItems.find((item) => location.pathname.startsWith(item.key));
-    return match?.key || "";
-  }, [location.pathname, visibleMenuItems]);
-
   const handleLogout = () => {
     logout();
     navigate("/login", { replace: true });
   };
-
-  const menuItems = useMemo(() => {
-    const sectionOrder: MenuItem["section"][] = ["Catalog", "Build", "Operate", "Admin"];
-    return [
-      ...sectionOrder
-        .map((section) => {
-          const children = visibleMenuItems
-            .filter((item) => item.section === section)
-            .map((item) => ({
-              key: item.key,
-              icon: item.icon,
-              label: item.label,
-              onClick: () => navigate(item.path),
-            }));
-          if (children.length === 0) return null;
-          return {
-            key: `section:${section}`,
-            label: section,
-            children,
-          };
-        })
-        .filter((item): item is NonNullable<typeof item> => item !== null),
-      {
-        key: "logout",
-        icon: <LogoutOutlined />,
-        label: "Logout",
-        onClick: handleLogout,
-        style: { marginLeft: "auto" },
-      },
-    ];
-  }, [visibleMenuItems, navigate]);
 
   if (loading) {
     return (
@@ -270,16 +235,18 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
 
   return (
     <Layout className={`app terminal-app theme-${appTheme}`} style={{ minHeight: "100vh" }}>
-      <Header className="app-header">
-        <div className="header-inner">
+      <Header className={`app-header console-header ${consoleVisible ? "" : "console-header-collapsed"}`}>
+        <div className="header-inner console-header-toolbar">
           <div className="logo">NOETL://LOCAL</div>
-          <Menu
-            theme="light"
-            mode="horizontal"
-            selectedKeys={[activeMenuKey]}
-            className="centered-menu"
-            items={menuItems}
-          />
+          <Button size="small" onClick={() => setConsoleVisible((value) => !value)}>
+            {consoleVisible ? "hide cli" : "show cli"}
+          </Button>
+          <Button size="small" onClick={() => setDashboardVisible((value) => !value)}>
+            {dashboardVisible ? "hide view" : "show view"}
+          </Button>
+          <Button size="small" icon={<LogoutOutlined />} onClick={handleLogout}>
+            logout
+          </Button>
           <Segmented<AppTheme>
             className="theme-switch"
             size="small"
@@ -291,32 +258,47 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
             onChange={onThemeChange}
           />
         </div>
+        {consoleVisible && <NoetlPrompt className="header-prompt" />}
       </Header>
       <Content className="terminal-content">
-        <div className="AppRoutesContent terminal-panel">
-          <NoetlPrompt />
-          <Routes>
-            <Route
-              path="/"
-              element={
-                visibleMenuItems[0] ? (
-                  <Navigate to={visibleMenuItems[0].path} replace />
-                ) : (
-                  <AccessDenied />
-                )
-              }
-            />
-            <Route path="/catalog" element={userRoles.includes("admin") ? <Catalog /> : <AccessDenied />} />
-            <Route path="/credentials" element={userRoles.includes("admin") ? <Credentials /> : <AccessDenied />} />
-            <Route path="/editor" element={userRoles.includes("admin") ? <Editor /> : <AccessDenied />} />
-            <Route path="/execution" element={userRoles.includes("admin") ? <Execution /> : <AccessDenied />} />
-            <Route path="/execution/:id" element={userRoles.includes("admin") ? <ExecutionDetail /> : <AccessDenied />} />
-            <Route path="/travel" element={<GatewayAssistant />} />
-            <Route path="/users" element={userRoles.includes("admin") ? <UserManagement /> : <AccessDenied />} />
-            {/* Catch-all route for 404 */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </div>
+        {dashboardVisible ? (
+          <div className="AppRoutesContent terminal-panel dashboard-window">
+            <div className="dashboard-window-bar">
+              <span>view::{location.pathname || "/"}</span>
+              <Button size="small" onClick={() => setDashboardVisible(false)}>
+                hide view
+              </Button>
+            </div>
+            <Routes>
+              <Route
+                path="/"
+                element={
+                  visibleMenuItems[0] ? (
+                    <Navigate to={visibleMenuItems[0].path} replace />
+                  ) : (
+                    <AccessDenied />
+                  )
+                }
+              />
+              <Route path="/catalog" element={userRoles.includes("admin") ? <Catalog /> : <AccessDenied />} />
+              <Route path="/credentials" element={userRoles.includes("admin") ? <Credentials /> : <AccessDenied />} />
+              <Route path="/editor" element={userRoles.includes("admin") ? <Editor /> : <AccessDenied />} />
+              <Route path="/execution" element={userRoles.includes("admin") ? <Execution /> : <AccessDenied />} />
+              <Route path="/execution/:id" element={userRoles.includes("admin") ? <ExecutionDetail /> : <AccessDenied />} />
+              <Route path="/travel" element={<GatewayAssistant />} />
+              <Route path="/users" element={userRoles.includes("admin") ? <UserManagement /> : <AccessDenied />} />
+              {/* Catch-all route for 404 */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </div>
+        ) : (
+          <div className="dashboard-window-toggle">
+            <span>view window hidden :: {location.pathname || "/"}</span>
+            <Button size="small" onClick={() => setDashboardVisible(true)}>
+              show view
+            </Button>
+          </div>
+        )}
       </Content>
       <Footer
         style={{
