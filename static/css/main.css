@@ -92,6 +92,11 @@ html[data-noetl-theme="light"] body {
    Layout Components - Used by main.tsx
    ========================================================================== */
 .terminal-app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  min-height: 100vh;
+  overflow: hidden;
   background:
     repeating-linear-gradient(
       0deg,
@@ -105,6 +110,9 @@ html[data-noetl-theme="light"] body {
 }
 
 .app-header {
+  position: relative;
+  flex: 0 0 auto;
+  z-index: 30;
   background: var(--mc-panel);
   padding: 0;
   height: auto;
@@ -341,6 +349,9 @@ html[data-noetl-theme="light"] body {
 }
 
 .terminal-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
   padding: 0 10px 10px;
   margin: 0;
 }
@@ -816,8 +827,8 @@ html[data-noetl-theme="dark"] .ant-picker-cell-selected .ant-picker-cell-inner {
 }
 
 .mc-function-footer {
-  position: sticky;
-  bottom: 0;
+  position: relative;
+  flex: 0 0 auto;
   z-index: 10;
   display: grid;
   grid-template-columns: repeat(10, minmax(64px, 1fr));
