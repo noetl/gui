@@ -257,11 +257,11 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
             <button type="button" className="mc-fkey" onClick={() => setDashboardVisible((value) => !value)}>
               Dashboard
             </button>
+            <button type="button" className="mc-fkey" onClick={() => navigate("/execution")}>
+              Runs
+            </button>
             <button type="button" className="mc-fkey" onClick={() => setConsoleVisible(true)}>
               Help
-            </button>
-            <button type="button" className="mc-fkey" onClick={() => navigate("/execution")}>
-              Execute
             </button>
             <button type="button" className="mc-fkey mc-fkey-danger" onClick={handleLogout}>
               Logout
@@ -331,7 +331,7 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
         <button type="button" onClick={() => setConsoleVisible((value) => !value)}>Terminal</button>
         <button type="button" onClick={() => setDashboardVisible((value) => !value)}>Dashboard</button>
         <button type="button" onClick={() => navigate("/catalog")}>Catalog</button>
-        <button type="button" onClick={() => navigate("/execution")}>Exec</button>
+        <button type="button" onClick={() => navigate("/execution")}>Runs</button>
         <button type="button" onClick={() => navigate("/editor")}>Edit</button>
         <button type="button" onClick={() => navigate("/credentials")}>Creds</button>
         <button type="button" onClick={() => navigate("/users")}>Users</button>
