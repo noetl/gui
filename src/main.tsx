@@ -10,7 +10,7 @@ import {
   useLocation,
   Navigate,
 } from "react-router-dom";
-import { Layout, ConfigProvider, Result, Button, App as AntdApp, Spin, Segmented } from "antd";
+import { Layout, ConfigProvider, Result, Button, App as AntdApp, Spin, Segmented, Tooltip } from "antd";
 
 // Import components
 import Catalog from "./components/Catalog";
@@ -26,9 +26,18 @@ import { ViewToolbarContext } from "./components/ViewToolbarContext";
 import {
   AppstoreOutlined,
   CodeOutlined,
+  ColumnHeightOutlined,
   DatabaseOutlined,
+  ExpandAltOutlined,
+  EyeInvisibleOutlined,
   EyeOutlined,
+  FullscreenExitOutlined,
+  FullscreenOutlined,
   KeyOutlined,
+  LogoutOutlined,
+  MonitorOutlined,
+  PlaySquareOutlined,
+  QuestionCircleOutlined,
   TeamOutlined,
 } from "@ant-design/icons";
 
@@ -42,6 +51,7 @@ import "../static/css/main.css";
 
 const { Header, Content, Footer } = Layout;
 type AppTheme = "dark" | "light";
+type PaneMode = "split" | "terminal" | "dashboard";
 const THEME_STORAGE_KEY = "noetl-ui-theme";
 const TERMINAL_HEIGHT_STORAGE_KEY = "noetl-terminal-pane-height";
 const MIN_TERMINAL_HEIGHT = 150;
@@ -156,6 +166,30 @@ const AccessDenied: React.FC = () => {
   );
 };
 
+const ChromeIconButton: React.FC<{
+  active?: boolean;
+  danger?: boolean;
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+}> = ({ active, danger, icon, label, onClick }) => (
+  <Tooltip title={label}>
+    <button
+      type="button"
+      aria-label={label}
+      className={[
+        "mc-fkey",
+        "mc-icon-button",
+        active ? "active" : "",
+        danger ? "mc-fkey-danger" : "",
+      ].filter(Boolean).join(" ")}
+      onClick={onClick}
+    >
+      {icon}
+    </button>
+  </Tooltip>
+);
+
 // Login page wrapper (no layout/menu)
 const LoginPage: React.FC<{ appTheme: AppTheme }> = ({ appTheme }) => {
   return (
@@ -176,6 +210,7 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
   const [loading, setLoading] = useState(true);
   const [consoleVisible, setConsoleVisible] = useState(true);
   const [dashboardVisible, setDashboardVisible] = useState(true);
+  const [paneMode, setPaneMode] = useState<PaneMode>("split");
   const [terminalHeight, setTerminalHeight] = useState(readStoredTerminalHeight);
   const [viewToolbarActions, setViewToolbarActions] = useState<React.ReactNode>(null);
   const shellRef = useRef<HTMLDivElement>(null);
@@ -250,6 +285,60 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
 
   const clearViewToolbarActions = useCallback(() => setViewToolbarActions(null), []);
 
+  const terminalPaneVisible = consoleVisible && paneMode !== "dashboard";
+  const dashboardPaneVisible = dashboardVisible && paneMode !== "terminal";
+  const canResizePanes = terminalPaneVisible && dashboardPaneVisible;
+  const terminalFullHeight = terminalPaneVisible && !dashboardPaneVisible;
+  const dashboardFullHeight = dashboardPaneVisible && !terminalPaneVisible;
+
+  const restoreSplit = useCallback(() => {
+    setConsoleVisible(true);
+    setDashboardVisible(true);
+    setPaneMode("split");
+  }, []);
+
+  const maximizeTerminal = useCallback(() => {
+    setConsoleVisible(true);
+    setPaneMode("terminal");
+  }, []);
+
+  const maximizeDashboard = useCallback(() => {
+    setDashboardVisible(true);
+    setPaneMode("dashboard");
+  }, []);
+
+  const toggleTerminalPane = useCallback(() => {
+    if (terminalPaneVisible) {
+      setConsoleVisible(false);
+      if (!dashboardVisible) {
+        setDashboardVisible(true);
+      }
+      setPaneMode("split");
+      return;
+    }
+
+    setConsoleVisible(true);
+    if (paneMode === "dashboard") {
+      setPaneMode("split");
+    }
+  }, [dashboardVisible, paneMode, terminalPaneVisible]);
+
+  const toggleDashboardPane = useCallback(() => {
+    if (dashboardPaneVisible) {
+      setDashboardVisible(false);
+      if (!consoleVisible) {
+        setConsoleVisible(true);
+      }
+      setPaneMode("split");
+      return;
+    }
+
+    setDashboardVisible(true);
+    if (paneMode === "terminal") {
+      setPaneMode("split");
+    }
+  }, [consoleVisible, dashboardPaneVisible, paneMode]);
+
   const getMaxTerminalHeight = useCallback(() => {
     if (typeof window === "undefined") return DEFAULT_TERMINAL_HEIGHT;
     const shellTop = shellRef.current?.getBoundingClientRect().top ?? 0;
@@ -275,7 +364,7 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
   }, [clampTerminalHeight, persistTerminalHeight]);
 
   useEffect(() => {
-    if (!dashboardVisible || !consoleVisible) return;
+    if (!canResizePanes) return;
 
     const handleResize = () => {
       setTerminalHeight((current) => clampTerminalHeight(current));
@@ -284,10 +373,10 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
     window.addEventListener("resize", handleResize);
     handleResize();
     return () => window.removeEventListener("resize", handleResize);
-  }, [clampTerminalHeight, consoleVisible, dashboardVisible]);
+  }, [canResizePanes, clampTerminalHeight]);
 
   const handleWorkspaceResizeStart = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
-    if (!dashboardVisible || !consoleVisible) return;
+    if (!canResizePanes) return;
 
     event.preventDefault();
     let nextHeight = terminalHeight;
@@ -315,10 +404,10 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
     window.addEventListener("pointermove", handlePointerMove);
     window.addEventListener("pointerup", handlePointerUp);
     window.addEventListener("pointercancel", handlePointerUp);
-  }, [clampTerminalHeight, consoleVisible, dashboardVisible, persistTerminalHeight, terminalHeight]);
+  }, [canResizePanes, clampTerminalHeight, persistTerminalHeight, terminalHeight]);
 
   const handleWorkspaceResizeKeyDown = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (!dashboardVisible || !consoleVisible) return;
+    if (!canResizePanes) return;
 
     if (event.key === "ArrowUp") {
       event.preventDefault();
@@ -333,7 +422,7 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
       event.preventDefault();
       setClampedTerminalHeight(getMaxTerminalHeight());
     }
-  }, [consoleVisible, dashboardVisible, getMaxTerminalHeight, setClampedTerminalHeight, terminalHeight]);
+  }, [canResizePanes, getMaxTerminalHeight, setClampedTerminalHeight, terminalHeight]);
 
   const viewToolbarValue = useMemo(() => ({
     actions: viewToolbarActions,
@@ -344,12 +433,12 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
   const runtimeContext = useMemo(() => apiService.getRuntimeContext(), []);
   const runtimeLabel = runtimeContext.displayName.toUpperCase();
   const terminalHeaderStyle = useMemo<React.CSSProperties | undefined>(() => {
-    if (!consoleVisible || !dashboardVisible) return undefined;
+    if (!canResizePanes) return undefined;
     return {
       flex: `0 0 ${terminalHeight}px`,
       height: terminalHeight,
     };
-  }, [consoleVisible, dashboardVisible, terminalHeight]);
+  }, [canResizePanes, terminalHeight]);
 
   if (loading) {
     return (
@@ -365,9 +454,9 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
         className={[
           "app-header",
           "console-header",
-          consoleVisible ? "console-header-visible" : "console-header-collapsed",
-          consoleVisible && dashboardVisible ? "console-header-resized" : "",
-          consoleVisible && !dashboardVisible ? "console-header-dashboard-hidden" : "",
+          terminalPaneVisible ? "console-header-visible" : "console-header-collapsed",
+          canResizePanes ? "console-header-resized" : "",
+          terminalFullHeight ? "console-header-full" : "",
         ].filter(Boolean).join(" ")}
         style={terminalHeaderStyle}
       >
@@ -386,26 +475,64 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
             ))}
           </nav>
           <div className="mc-command-line" aria-label="NoETL command bar">
-            <button type="button" className="mc-fkey" onClick={() => setConsoleVisible((value) => !value)}>
-              Terminal
-            </button>
-            <button type="button" className="mc-fkey" onClick={() => setDashboardVisible((value) => !value)}>
-              Dashboard
-            </button>
-            <button type="button" className="mc-fkey" onClick={() => navigate("/execution")}>
-              Runs
-            </button>
+            <ChromeIconButton
+              active={terminalPaneVisible}
+              icon={terminalPaneVisible ? <EyeInvisibleOutlined /> : <CodeOutlined />}
+              label={terminalPaneVisible ? "Hide terminal" : "Show terminal"}
+              onClick={toggleTerminalPane}
+            />
+            <ChromeIconButton
+              active={dashboardPaneVisible}
+              icon={dashboardPaneVisible ? <EyeInvisibleOutlined /> : <MonitorOutlined />}
+              label={dashboardPaneVisible ? "Hide dashboard" : "Show dashboard"}
+              onClick={toggleDashboardPane}
+            />
+            <ChromeIconButton
+              active={paneMode === "split" && consoleVisible && dashboardVisible}
+              icon={<ColumnHeightOutlined />}
+              label="Split panes"
+              onClick={restoreSplit}
+            />
+            <ChromeIconButton
+              active={terminalFullHeight}
+              icon={terminalFullHeight ? <FullscreenExitOutlined /> : <ExpandAltOutlined />}
+              label={terminalFullHeight ? "Restore split view" : "Maximize terminal"}
+              onClick={terminalFullHeight ? restoreSplit : maximizeTerminal}
+            />
+            <ChromeIconButton
+              active={dashboardFullHeight}
+              icon={dashboardFullHeight ? <FullscreenExitOutlined /> : <FullscreenOutlined />}
+              label={dashboardFullHeight ? "Restore split view" : "Maximize dashboard"}
+              onClick={dashboardFullHeight ? restoreSplit : maximizeDashboard}
+            />
+            <ChromeIconButton
+              icon={<PlaySquareOutlined />}
+              label="Runs"
+              onClick={() => navigate("/execution")}
+            />
             {userRoles.includes("admin") && (
-              <button type="button" className="mc-fkey" onClick={() => navigate("/users")}>
-                Users
-              </button>
+              <ChromeIconButton
+                icon={<TeamOutlined />}
+                label="Users"
+                onClick={() => navigate("/users")}
+              />
             )}
-            <button type="button" className="mc-fkey" onClick={() => setConsoleVisible(true)}>
-              Help
-            </button>
-            <button type="button" className="mc-fkey mc-fkey-danger" onClick={handleLogout}>
-              Logout
-            </button>
+            <ChromeIconButton
+              icon={<QuestionCircleOutlined />}
+              label="Help"
+              onClick={() => {
+                setConsoleVisible(true);
+                if (paneMode === "dashboard") {
+                  setPaneMode("split");
+                }
+              }}
+            />
+            <ChromeIconButton
+              danger
+              icon={<LogoutOutlined />}
+              label="Logout"
+              onClick={handleLogout}
+            />
           </div>
           <span className="mc-context">kind:{activeRoute?.label || "workspace"}</span>
           <Segmented<AppTheme>
@@ -419,9 +546,9 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
             onChange={onThemeChange}
           />
         </div>
-        {consoleVisible && <NoetlPrompt className="header-prompt" />}
+        {terminalPaneVisible && <NoetlPrompt className="header-prompt" />}
       </Header>
-      {consoleVisible && dashboardVisible && (
+      {canResizePanes && (
         <div
           aria-label="Resize terminal and dashboard panes"
           aria-orientation="horizontal"
@@ -437,15 +564,30 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
         />
       )}
       <ViewToolbarContext.Provider value={viewToolbarValue}>
-        <Content className={`terminal-content ${dashboardVisible ? "" : "dashboard-hidden-content"}`}>
-          {dashboardVisible ? (
+        <Content className={`terminal-content ${dashboardPaneVisible ? "" : "dashboard-hidden-content"}`}>
+          {dashboardPaneVisible ? (
             <>
               <div className="dashboard-window-bar">
                 <span className="mc-panel-title">VIEW::{location.pathname || "/"}</span>
                 {viewToolbarActions && <div className="dashboard-window-actions">{viewToolbarActions}</div>}
-                <Button className="mc-menu-button" size="small" onClick={() => setDashboardVisible(false)}>
-                  hide view
-                </Button>
+                <Tooltip title={dashboardFullHeight ? "Restore split view" : "Maximize dashboard"}>
+                  <Button
+                    aria-label={dashboardFullHeight ? "Restore split view" : "Maximize dashboard"}
+                    className="mc-menu-button"
+                    icon={dashboardFullHeight ? <FullscreenExitOutlined /> : <FullscreenOutlined />}
+                    size="small"
+                    onClick={dashboardFullHeight ? restoreSplit : maximizeDashboard}
+                  />
+                </Tooltip>
+                <Tooltip title="Hide dashboard">
+                  <Button
+                    aria-label="Hide dashboard"
+                    className="mc-menu-button"
+                    icon={<EyeInvisibleOutlined />}
+                    size="small"
+                    onClick={toggleDashboardPane}
+                  />
+                </Tooltip>
               </div>
               <div className="AppRoutesContent terminal-panel dashboard-window">
                 <Routes>
@@ -471,14 +613,7 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
                 </Routes>
               </div>
             </>
-          ) : (
-            <div className="dashboard-window-toggle">
-              <span>view window hidden :: {location.pathname || "/"}</span>
-              <Button className="mc-menu-button" size="small" onClick={() => setDashboardVisible(true)}>
-                show view
-              </Button>
-            </div>
-          )}
+          ) : null}
         </Content>
       </ViewToolbarContext.Provider>
       <Footer ref={footerRef} className="mc-function-footer">

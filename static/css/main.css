@@ -294,6 +294,7 @@ html[data-noetl-theme="light"] body {
 .mc-fkey {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
   min-height: 24px;
   padding: 2px 6px 3px;
@@ -304,8 +305,15 @@ html[data-noetl-theme="light"] body {
   white-space: nowrap;
 }
 
+.mc-icon-button {
+  width: 28px;
+  min-width: 28px;
+  padding: 2px;
+}
+
 .mc-fkey:hover,
 .mc-fkey:focus,
+.mc-fkey.active,
 .mc-function-footer button:hover,
 .mc-function-footer button:focus {
   background: var(--mc-select);
@@ -380,9 +388,10 @@ html[data-noetl-theme="light"] body {
   min-height: 150px;
 }
 
-.console-header-dashboard-hidden {
+.console-header-full {
   flex: 1 1 auto;
   min-height: 240px;
+  height: auto;
 }
 
 .noetl-prompt.header-prompt {
@@ -472,9 +481,7 @@ body.workspace-resizing {
 }
 
 .terminal-content.dashboard-hidden-content {
-  flex: 0 0 auto;
-  overflow: visible;
-  padding-top: 4px;
+  display: none;
 }
 
 .terminal-panel {
