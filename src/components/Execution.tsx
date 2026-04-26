@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Layout,
   Table,
@@ -22,7 +22,6 @@ import {
   StopOutlined,
   ReloadOutlined,
   EyeOutlined,
-  FilterOutlined,
   SearchOutlined,
 } from "@ant-design/icons";
 import { apiService } from "../services/api";
@@ -45,6 +44,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import "../styles/Execution.css";
 import FlowVisualization from "./FlowVisualization";
+import { useViewToolbar } from "./ViewToolbarContext";
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
@@ -74,6 +74,7 @@ interface TaskNode {
 }
 
 const Execution: React.FC = () => {
+  const { setActions: setViewActions, clearActions: clearViewActions } = useViewToolbar();
   const [executions, setExecutions] = useState<ExecutionData[]>([]);
   const [filteredExecutions, setFilteredExecutions] = useState<ExecutionData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -129,26 +130,7 @@ const Execution: React.FC = () => {
     }
   }, [location, selectedPlaybookId]);
 
-  useEffect(() => {
-    fetchExecutions();
-
-    // Set up auto-refresh for active executions
-    const interval = setInterval(async () => {
-      try {
-        const response = await apiService.getExecutions();
-        const deduped = Array.from(
-          new Map(response.map((exec) => [exec.execution_id, exec])).values()
-        );
-        setExecutions(deduped);
-      } catch (err) {
-        // Optionally handle error
-      }
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const fetchExecutions = async (isRefresh = false) => {
+  const fetchExecutions = useCallback(async (isRefresh = false) => {
     try {
       if (isRefresh) {
         setRefreshing(true);
@@ -171,7 +153,26 @@ const Execution: React.FC = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchExecutions();
+
+    // Set up auto-refresh for active executions
+    const interval = setInterval(async () => {
+      try {
+        const response = await apiService.getExecutions();
+        const deduped = Array.from(
+          new Map(response.map((exec) => [exec.execution_id, exec])).values()
+        );
+        setExecutions(deduped);
+      } catch (err) {
+        // Optionally handle error
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [fetchExecutions]);
 
   // Filter executions based on current filters
   const applyFilters = useCallback(() => {
@@ -225,14 +226,14 @@ const Execution: React.FC = () => {
     setCurrentPage(1);
   }, [filteredExecutions.length, pageSize]);
 
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     setActiveTab("all");
     setStatusFilter([]);
     setPlaybookFilter("");
     setSearchText("");
     setDateRange(null);
     setCurrentPage(1);
-  };
+  }, []);
 
   const handleStopExecution = async (executionId: string) => {
     try {
@@ -632,9 +633,117 @@ const Execution: React.FC = () => {
   );
 
   // Get unique playbook names for filter dropdown
-  const uniquePlaybooks = Array.from(
+  const uniquePlaybooks = useMemo(() => Array.from(
     new Set(executions.map((exec) => exec.path + ":" + exec.version)),
-  );
+  ), [executions]);
+
+  const executionViewActions = useMemo(() => {
+    if (showWorkflowVisualization) {
+      return (
+        <div className="execution-view-toolbar">
+          <span className="execution-toolbar-label">workflow::{selectedPlaybookName || selectedPlaybookId}</span>
+          <Button
+            type="default"
+            onClick={() => {
+              setShowWorkflowVisualization(false);
+              navigate("/execution");
+            }}
+          >
+            Back to Executions
+          </Button>
+        </div>
+      );
+    }
+
+    return (
+      <div className="execution-view-toolbar">
+        <Tabs
+          activeKey={activeTab}
+          onChange={setActiveTab}
+          size="small"
+          className="execution-toolbar-tabs"
+        >
+          <TabPane tab="All" key="all" />
+          <TabPane tab={`Running (${executions.filter(e => e.status === "running").length})`} key="running" />
+          <TabPane tab={`Pending (${executions.filter(e => e.status === "pending").length})`} key="pending" />
+          <TabPane tab={`Completed (${executions.filter(e => e.status === "completed").length})`} key="completed" />
+          <TabPane tab={`Failed (${executions.filter(e => e.status === "failed").length})`} key="failed" />
+        </Tabs>
+        <Input
+          placeholder="Search executions..."
+          prefix={<SearchOutlined />}
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+          allowClear
+          className="execution-toolbar-search"
+        />
+        <Select
+          mode="multiple"
+          placeholder="Status"
+          className="execution-toolbar-select"
+          value={statusFilter}
+          onChange={setStatusFilter}
+          allowClear
+        >
+          <Option value="running">Running</Option>
+          <Option value="pending">Pending</Option>
+          <Option value="completed">Completed</Option>
+          <Option value="failed">Failed</Option>
+        </Select>
+        <Select
+          placeholder="Playbook"
+          className="execution-toolbar-playbook"
+          value={playbookFilter}
+          onChange={setPlaybookFilter}
+          allowClear
+          showSearch
+        >
+          {uniquePlaybooks.map((playbook) => (
+            <Option key={playbook} value={playbook}>
+              {playbook}
+            </Option>
+          ))}
+        </Select>
+        <RangePicker
+          placeholder={["Start date", "End date"]}
+          className="execution-toolbar-date"
+          value={dateRange}
+          onChange={setDateRange}
+        />
+        <Button onClick={clearFilters} type="default">
+          Clear
+        </Button>
+        <Button
+          type="default"
+          icon={<ReloadOutlined />}
+          loading={refreshing}
+          onClick={() => fetchExecutions(true)}
+        >
+          Refresh
+        </Button>
+      </div>
+    );
+  }, [
+    activeTab,
+    clearFilters,
+    dateRange,
+    executions,
+    fetchExecutions,
+    navigate,
+    playbookFilter,
+    refreshing,
+    searchText,
+    selectedPlaybookId,
+    selectedPlaybookName,
+    showWorkflowVisualization,
+    statusFilter,
+    uniquePlaybooks,
+  ]);
+
+  useEffect(() => {
+    setViewActions(executionViewActions);
+    return clearViewActions;
+  }, [clearViewActions, executionViewActions, setViewActions]);
 
   if (loading) {
     return (
@@ -657,25 +766,6 @@ const Execution: React.FC = () => {
     <Content className="execution-main-content">
       {showWorkflowVisualization ? (
         <Space direction="vertical" size="large" className="execution-space-vertical">
-          <Row justify="space-between" align="middle">
-            <Col>
-              <Title level={2}>
-                🔄 Workflow Visualization - {selectedPlaybookName}
-              </Title>
-            </Col>
-            <Col>
-              <Button
-                type="default"
-                onClick={() => {
-                  setShowWorkflowVisualization(false);
-                  navigate("/execution");
-                }}
-              >
-                Back to Executions
-              </Button>
-            </Col>
-          </Row>
-
           {/* Inline Flow Visualization using shared component in read-only view mode */}
           <FlowVisualization
             visible={showWorkflowVisualization}
@@ -692,96 +782,6 @@ const Execution: React.FC = () => {
       ) : (
         // Show normal execution history
         <Space direction="vertical" size="large" className="execution-space-vertical">
-          <Row justify="space-between" align="middle">
-            <Col>
-              <Title level={2}>EXECUTION OBSERVABILITY</Title>
-            </Col>
-            <Col>
-              <Button
-                type="default"
-                icon={<ReloadOutlined />}
-                loading={refreshing}
-                onClick={() => fetchExecutions(true)}
-              >
-                Refresh
-              </Button>
-            </Col>
-          </Row>
-
-          <Card title={<><FilterOutlined /> Execution Filters</>} size="small">
-            <Space direction="vertical" className="execution-filter-space">
-              {/* Tabs for main event types */}
-              <Tabs
-                activeKey={activeTab}
-                onChange={setActiveTab}
-                size="small"
-              >
-                <TabPane tab="All Executions" key="all" />
-                <TabPane tab={`Running (${executions.filter(e => e.status === "running").length})`} key="running" />
-                <TabPane tab={`Pending (${executions.filter(e => e.status === "pending").length})`} key="pending" />
-                <TabPane tab={`Completed (${executions.filter(e => e.status === "completed").length})`} key="completed" />
-                <TabPane tab={`Failed (${executions.filter(e => e.status === "failed").length})`} key="failed" />
-              </Tabs>
-
-              {/* Additional Filters */}
-              <Row gutter={16}>
-                <Col span={6}>
-                  <Input
-                    placeholder="Search executions..."
-                    prefix={<SearchOutlined />}
-                    value={searchText}
-                    onChange={(e) => setSearchText(e.target.value)}
-                    allowClear
-                  />
-                </Col>
-                <Col span={6}>
-                  <Select
-                    mode="multiple"
-                    placeholder="Filter by status"
-                    className="execution-filter-select"
-                    value={statusFilter}
-                    onChange={setStatusFilter}
-                    allowClear
-                  >
-                    <Option value="running">Running</Option>
-                    <Option value="pending">Pending</Option>
-                    <Option value="completed">Completed</Option>
-                    <Option value="failed">Failed</Option>
-                  </Select>
-                </Col>
-                <Col span={6}>
-                  <Select
-                    placeholder="Filter by playbook"
-                    className="execution-filter-select"
-                    value={playbookFilter}
-                    onChange={setPlaybookFilter}
-                    allowClear
-                    showSearch
-                  >
-                    {uniquePlaybooks.map((playbook) => (
-                      <Option key={playbook} value={playbook}>
-                        {playbook}
-                      </Option>
-                    ))}
-                  </Select>
-                </Col>
-                <Col span={4}>
-                  <RangePicker
-                    placeholder={["Start date", "End date"]}
-                    className="execution-date-picker"
-                    value={dateRange}
-                    onChange={setDateRange}
-                  />
-                </Col>
-                <Col span={2}>
-                  <Button onClick={clearFilters} type="default">
-                    Clear
-                  </Button>
-                </Col>
-              </Row>
-            </Space>
-          </Card>
-
           {/* Execution Statistics */}
           <Row gutter={16}>
             <Col span={6}>
