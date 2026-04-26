@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import type React from "react";
 import { createRoot } from "react-dom/client";
 import {
@@ -43,10 +43,20 @@ import "../static/css/main.css";
 const { Header, Content, Footer } = Layout;
 type AppTheme = "dark" | "light";
 const THEME_STORAGE_KEY = "noetl-ui-theme";
+const TERMINAL_HEIGHT_STORAGE_KEY = "noetl-terminal-pane-height";
+const MIN_TERMINAL_HEIGHT = 150;
+const MIN_DASHBOARD_HEIGHT = 180;
+const DEFAULT_TERMINAL_HEIGHT = 340;
 
 function readStoredTheme(): AppTheme {
   if (typeof window === "undefined") return "dark";
   return window.localStorage.getItem(THEME_STORAGE_KEY) === "light" ? "light" : "dark";
+}
+
+function readStoredTerminalHeight(): number {
+  if (typeof window === "undefined") return DEFAULT_TERMINAL_HEIGHT;
+  const stored = Number(window.localStorage.getItem(TERMINAL_HEIGHT_STORAGE_KEY));
+  return Number.isFinite(stored) && stored > 0 ? stored : DEFAULT_TERMINAL_HEIGHT;
 }
 
 const appThemeTokens: Record<AppTheme, {
@@ -166,7 +176,10 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
   const [loading, setLoading] = useState(true);
   const [consoleVisible, setConsoleVisible] = useState(true);
   const [dashboardVisible, setDashboardVisible] = useState(true);
+  const [terminalHeight, setTerminalHeight] = useState(readStoredTerminalHeight);
   const [viewToolbarActions, setViewToolbarActions] = useState<React.ReactNode>(null);
+  const shellRef = useRef<HTMLDivElement>(null);
+  const footerRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -237,6 +250,91 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
 
   const clearViewToolbarActions = useCallback(() => setViewToolbarActions(null), []);
 
+  const getMaxTerminalHeight = useCallback(() => {
+    if (typeof window === "undefined") return DEFAULT_TERMINAL_HEIGHT;
+    const shellTop = shellRef.current?.getBoundingClientRect().top ?? 0;
+    const footerHeight = footerRef.current?.getBoundingClientRect().height ?? 28;
+    return Math.max(
+      MIN_TERMINAL_HEIGHT,
+      window.innerHeight - shellTop - footerHeight - MIN_DASHBOARD_HEIGHT,
+    );
+  }, []);
+
+  const clampTerminalHeight = useCallback((height: number) => {
+    return Math.round(Math.min(getMaxTerminalHeight(), Math.max(MIN_TERMINAL_HEIGHT, height)));
+  }, [getMaxTerminalHeight]);
+
+  const persistTerminalHeight = useCallback((height: number) => {
+    window.localStorage.setItem(TERMINAL_HEIGHT_STORAGE_KEY, String(height));
+  }, []);
+
+  const setClampedTerminalHeight = useCallback((height: number) => {
+    const next = clampTerminalHeight(height);
+    setTerminalHeight(next);
+    persistTerminalHeight(next);
+  }, [clampTerminalHeight, persistTerminalHeight]);
+
+  useEffect(() => {
+    if (!dashboardVisible || !consoleVisible) return;
+
+    const handleResize = () => {
+      setTerminalHeight((current) => clampTerminalHeight(current));
+    };
+
+    window.addEventListener("resize", handleResize);
+    handleResize();
+    return () => window.removeEventListener("resize", handleResize);
+  }, [clampTerminalHeight, consoleVisible, dashboardVisible]);
+
+  const handleWorkspaceResizeStart = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    if (!dashboardVisible || !consoleVisible) return;
+
+    event.preventDefault();
+    let nextHeight = terminalHeight;
+
+    const updateFromPointer = (clientY: number) => {
+      const shellTop = shellRef.current?.getBoundingClientRect().top ?? 0;
+      nextHeight = clampTerminalHeight(clientY - shellTop);
+      setTerminalHeight(nextHeight);
+    };
+
+    const handlePointerMove = (moveEvent: PointerEvent) => {
+      updateFromPointer(moveEvent.clientY);
+    };
+
+    const handlePointerUp = () => {
+      document.body.classList.remove("workspace-resizing");
+      persistTerminalHeight(nextHeight);
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+      window.removeEventListener("pointercancel", handlePointerUp);
+    };
+
+    document.body.classList.add("workspace-resizing");
+    updateFromPointer(event.clientY);
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+    window.addEventListener("pointercancel", handlePointerUp);
+  }, [clampTerminalHeight, consoleVisible, dashboardVisible, persistTerminalHeight, terminalHeight]);
+
+  const handleWorkspaceResizeKeyDown = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!dashboardVisible || !consoleVisible) return;
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setClampedTerminalHeight(terminalHeight - 24);
+    } else if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setClampedTerminalHeight(terminalHeight + 24);
+    } else if (event.key === "Home") {
+      event.preventDefault();
+      setClampedTerminalHeight(MIN_TERMINAL_HEIGHT);
+    } else if (event.key === "End") {
+      event.preventDefault();
+      setClampedTerminalHeight(getMaxTerminalHeight());
+    }
+  }, [consoleVisible, dashboardVisible, getMaxTerminalHeight, setClampedTerminalHeight, terminalHeight]);
+
   const viewToolbarValue = useMemo(() => ({
     actions: viewToolbarActions,
     setActions: setViewToolbarActions,
@@ -245,6 +343,13 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
 
   const runtimeContext = useMemo(() => apiService.getRuntimeContext(), []);
   const runtimeLabel = runtimeContext.displayName.toUpperCase();
+  const terminalHeaderStyle = useMemo<React.CSSProperties | undefined>(() => {
+    if (!consoleVisible || !dashboardVisible) return undefined;
+    return {
+      flex: `0 0 ${terminalHeight}px`,
+      height: terminalHeight,
+    };
+  }, [consoleVisible, dashboardVisible, terminalHeight]);
 
   if (loading) {
     return (
@@ -255,8 +360,17 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
   }
 
   return (
-    <Layout className={`app terminal-app theme-${appTheme}`} style={{ minHeight: "100vh" }}>
-      <Header className={`app-header console-header ${consoleVisible ? "" : "console-header-collapsed"}`}>
+    <Layout ref={shellRef} className={`app terminal-app theme-${appTheme}`} style={{ minHeight: "100vh" }}>
+      <Header
+        className={[
+          "app-header",
+          "console-header",
+          consoleVisible ? "console-header-visible" : "console-header-collapsed",
+          consoleVisible && dashboardVisible ? "console-header-resized" : "",
+          consoleVisible && !dashboardVisible ? "console-header-dashboard-hidden" : "",
+        ].filter(Boolean).join(" ")}
+        style={terminalHeaderStyle}
+      >
         <div className="header-inner mc-top-line">
           <div className="logo">NOETL://{runtimeLabel}</div>
           <nav className="mc-menubar" aria-label="NoETL workspace menu">
@@ -307,8 +421,23 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
         </div>
         {consoleVisible && <NoetlPrompt className="header-prompt" />}
       </Header>
+      {consoleVisible && dashboardVisible && (
+        <div
+          aria-label="Resize terminal and dashboard panes"
+          aria-orientation="horizontal"
+          aria-valuemax={getMaxTerminalHeight()}
+          aria-valuemin={MIN_TERMINAL_HEIGHT}
+          aria-valuenow={terminalHeight}
+          className="workspace-resizer"
+          onKeyDown={handleWorkspaceResizeKeyDown}
+          onPointerDown={handleWorkspaceResizeStart}
+          role="separator"
+          tabIndex={0}
+          title="drag to resize terminal and dashboard"
+        />
+      )}
       <ViewToolbarContext.Provider value={viewToolbarValue}>
-        <Content className="terminal-content">
+        <Content className={`terminal-content ${dashboardVisible ? "" : "dashboard-hidden-content"}`}>
           {dashboardVisible ? (
             <>
               <div className="dashboard-window-bar">
@@ -352,7 +481,7 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
           )}
         </Content>
       </ViewToolbarContext.Provider>
-      <Footer className="mc-function-footer">
+      <Footer ref={footerRef} className="mc-function-footer">
         <button type="button" onClick={() => setConsoleVisible(true)}>Help</button>
         <button type="button" onClick={() => setConsoleVisible((value) => !value)}>Terminal</button>
         <button type="button" onClick={() => setDashboardVisible((value) => !value)}>Dashboard</button>
