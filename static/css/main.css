@@ -16,7 +16,8 @@ body {
   --noetl-radius-sm: 3px;
 }
 
-.terminal-app {
+.terminal-app,
+.login-shell {
   --mc-bg: #050805;
   --mc-bg-rgb: 5, 8, 5;
   --mc-panel: #071007;
@@ -35,7 +36,8 @@ body {
   --mc-radius: var(--noetl-radius);
 }
 
-.terminal-app.theme-light {
+.terminal-app.theme-light,
+.login-shell.theme-light {
   --mc-bg: #eef4ef;
   --mc-bg-rgb: 238, 244, 239;
   --mc-panel: #ffffff;
@@ -51,6 +53,23 @@ body {
   --mc-bar: #d8dfdc;
   --mc-bar-text: #102010;
   --mc-danger: #8c1d1d;
+}
+
+.login-shell {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0.035),
+      rgba(255, 255, 255, 0.035) 1px,
+      transparent 1px,
+      transparent 4px
+    ),
+    var(--mc-bg);
+  color: var(--mc-text);
 }
 
 html[data-noetl-theme="dark"],

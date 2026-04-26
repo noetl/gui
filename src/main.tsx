@@ -147,24 +147,11 @@ const AccessDenied: React.FC = () => {
 };
 
 // Login page wrapper (no layout/menu)
-const LoginPage: React.FC = () => {
+const LoginPage: React.FC<{ appTheme: AppTheme }> = ({ appTheme }) => {
   return (
-    <ConfigProvider
-      theme={{
-        token: {
-          colorPrimary: "#1890ff",
-          borderRadius: 8,
-          colorBgContainer: "#ffffff",
-          colorBgLayout: "#f5f5f5",
-        },
-      }}
-    >
-      <AntdApp>
-        <div style={{ minHeight: "100vh", background: "#050805", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <GatewayLogin />
-        </div>
-      </AntdApp>
-    </ConfigProvider>
+    <div className={`login-shell theme-${appTheme}`}>
+      <GatewayLogin />
+    </div>
   );
 };
 
@@ -380,7 +367,7 @@ const App: React.FC = () => {
     >
       <AntdApp>
         <Routes>
-          <Route path="/login" element={<LoginPage />} />
+          <Route path="/login" element={<LoginPage appTheme={appTheme} />} />
           <Route path="/*" element={<AuthenticatedApp appTheme={appTheme} onThemeChange={setAppTheme} />} />
         </Routes>
       </AntdApp>
