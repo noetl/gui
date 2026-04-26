@@ -420,6 +420,10 @@ html[data-noetl-theme="light"] body {
   min-height: 0;
 }
 
+.console-header-full .noetl-prompt-form {
+  margin-bottom: 24px;
+}
+
 .console-header-toolbar {
   min-height: 28px;
   flex-wrap: wrap;
