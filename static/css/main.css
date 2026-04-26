@@ -185,6 +185,7 @@ html[data-noetl-theme="light"] body {
   border: 1px solid var(--mc-border);
   gap: 0;
   overflow: hidden;
+  min-height: 0;
 }
 
 .header-inner {
@@ -396,19 +397,21 @@ html[data-noetl-theme="light"] body {
 
 .console-header-full {
   flex: 1 1 0;
-  min-height: 240px;
+  min-height: 0;
   height: auto;
 }
 
 .noetl-prompt.header-prompt {
-  flex: 1 1 auto;
+  flex: 1 1 0;
+  height: 100%;
   min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .noetl-prompt.header-prompt .noetl-prompt-history {
-  flex: 1 1 auto;
+  flex: 1 1 0;
   max-height: none;
   min-height: 0;
 }
@@ -519,6 +522,7 @@ body.workspace-resizing {
   max-height: 190px;
   overflow: auto;
   overflow-x: auto;
+  overscroll-behavior: contain;
   padding-bottom: 8px;
 }
 
@@ -641,6 +645,7 @@ body.workspace-resizing {
   display: grid;
   grid-template-columns: max-content minmax(180px, 1fr) 30px 30px;
   align-items: center;
+  flex: 0 0 auto;
   gap: 8px;
   border-top: 1px solid var(--mc-border-dim);
   padding-top: 8px;
