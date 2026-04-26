@@ -17,19 +17,19 @@ body {
 }
 
 .terminal-app {
-  --mc-bg: #001245;
-  --mc-bg-rgb: 0, 18, 69;
-  --mc-panel: #00206f;
-  --mc-panel-deep: #000b2c;
-  --mc-panel-soft: #07358b;
-  --mc-border: #58d8ff;
-  --mc-border-dim: #2d72aa;
-  --mc-text: #e8f8ff;
-  --mc-muted: #9bc6da;
-  --mc-hotkey: #fff06a;
-  --mc-select: #00a6c8;
-  --mc-select-text: #001245;
-  --mc-bar: #c7c7c7;
+  --mc-bg: #050805;
+  --mc-bg-rgb: 5, 8, 5;
+  --mc-panel: #071007;
+  --mc-panel-deep: #020402;
+  --mc-panel-soft: #102810;
+  --mc-border: #9cff9c;
+  --mc-border-dim: #2f6f2f;
+  --mc-text: #9cff9c;
+  --mc-muted: #5ea65e;
+  --mc-hotkey: #d6ffd6;
+  --mc-select: #173d17;
+  --mc-select-text: #ffffff;
+  --mc-bar: #c9d8c9;
   --mc-bar-text: #050805;
   --mc-danger: #ff9b9b;
   --mc-radius: var(--noetl-radius);
@@ -40,14 +40,14 @@ body {
   --mc-bg-rgb: 238, 244, 239;
   --mc-panel: #ffffff;
   --mc-panel-deep: #f7fbf7;
-  --mc-panel-soft: #e2edf4;
-  --mc-border: #217aa0;
-  --mc-border-dim: #b7ccd6;
+  --mc-panel-soft: #eef5ee;
+  --mc-border: #0f6b3a;
+  --mc-border-dim: #c9d8c9;
   --mc-text: #102010;
-  --mc-muted: #506b76;
-  --mc-hotkey: #8a6500;
-  --mc-select: #b9e7ff;
-  --mc-select-text: #102010;
+  --mc-muted: #587258;
+  --mc-hotkey: #0f6b3a;
+  --mc-select: #e4f1e4;
+  --mc-select-text: #0f6b3a;
   --mc-bar: #d8dfdc;
   --mc-bar-text: #102010;
   --mc-danger: #8c1d1d;
