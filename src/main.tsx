@@ -238,13 +238,13 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
       <Header className={`app-header console-header ${consoleVisible ? "" : "console-header-collapsed"}`}>
         <div className="header-inner console-header-toolbar">
           <div className="logo">NOETL://LOCAL</div>
-          <Button size="small" onClick={() => setConsoleVisible((value) => !value)}>
+          <Button className="mc-menu-button" size="small" onClick={() => setConsoleVisible((value) => !value)}>
             {consoleVisible ? "hide cli" : "show cli"}
           </Button>
-          <Button size="small" onClick={() => setDashboardVisible((value) => !value)}>
+          <Button className="mc-menu-button" size="small" onClick={() => setDashboardVisible((value) => !value)}>
             {dashboardVisible ? "hide view" : "show view"}
           </Button>
-          <Button size="small" icon={<LogoutOutlined />} onClick={handleLogout}>
+          <Button className="mc-menu-button" size="small" icon={<LogoutOutlined />} onClick={handleLogout}>
             logout
           </Button>
           <Segmented<AppTheme>
@@ -265,7 +265,7 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
           <div className="AppRoutesContent terminal-panel dashboard-window">
             <div className="dashboard-window-bar">
               <span>view::{location.pathname || "/"}</span>
-              <Button size="small" onClick={() => setDashboardVisible(false)}>
+              <Button className="mc-menu-button" size="small" onClick={() => setDashboardVisible(false)}>
                 hide view
               </Button>
             </div>
@@ -294,7 +294,7 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
         ) : (
           <div className="dashboard-window-toggle">
             <span>view window hidden :: {location.pathname || "/"}</span>
-            <Button size="small" onClick={() => setDashboardVisible(true)}>
+            <Button className="mc-menu-button" size="small" onClick={() => setDashboardVisible(true)}>
               show view
             </Button>
           </div>
