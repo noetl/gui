@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.7](https://github.com/noetl/gui/compare/v1.0.6...v1.0.7) (2026-04-26)
+
+### Bug Fixes
+
+* release kubernetes mcp terminal ([4a9592a](https://github.com/noetl/gui/commit/4a9592aab8207fbb491569a22b8b92e8368502ba))
+
 ## [1.0.6](https://github.com/noetl/gui/compare/v1.0.5...v1.0.6) (2026-04-26)
 
 ### Bug Fixes
