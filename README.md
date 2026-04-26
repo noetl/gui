@@ -32,6 +32,7 @@ Build image locally:
 
 ```bash
 docker build \
+  --build-arg APP_VERSION=dev \
   -t local/noetl-gui:dev \
   .
 ```
@@ -52,6 +53,7 @@ Open: `http://localhost:8080`
 ## Runtime environment configuration (no rebuild)
 
 The container writes `/env-config.js` at startup from environment variables, so API/auth settings can be changed at deploy/run time without rebuilding the image.
+The startup script also adds a timestamp query string to the `/env-config.js` script tag in `index.html`, matching the deploy-time environment injection pattern used by the health-vax UI reference while keeping NoETL's Vite/nginx layout.
 
 Supported runtime variables:
 
@@ -75,38 +77,47 @@ docker run --rm -p 8080:8080 \
 
 ## Release and publish
 
-This repo uses two workflows:
+This repo uses these workflows:
 
-- `Semantic Release ⚙️` (`.github/workflows/semantic-release.yml`)
+- `Semantic Release ⚙️` (`.github/workflows/release.yml`)
   - Trigger: push to `main`
   - Uses conventional commits (`feat:`, `fix:`) to determine next version
-  - Updates `package.json` + `package-lock.json` + `CHANGELOG.md`
+  - Updates `package.json`, `package-lock.json`, and `CHANGELOG.md`
   - Creates/pushes git tag `v<version>`
 
-- `release-gui` (`.github/workflows/release.yml`)
-  - Trigger: tag push `v*` (or manual dispatch)
+- `Build image on Release` (`.github/workflows/build_on_release.yml`)
+  - Trigger: GitHub Release published, or manual dispatch with a release tag such as `v1.2.3`
   - Builds/pushes container image to GHCR:
+    - `ghcr.io/noetl/gui:v<version>`
     - `ghcr.io/noetl/gui:<version>`
+    - `ghcr.io/noetl/gui:<major>.<minor>`
+    - `ghcr.io/noetl/gui:<major>`
     - `ghcr.io/noetl/gui:latest`
-  - Creates/updates GitHub Release for the same tag
+  - Builds multi-platform images for `linux/amd64` and `linux/arm64`
+
+- `Validate GUI` (`.github/workflows/validate.yml`)
+  - Trigger: pull requests and pushes to `main`
+  - Runs `npm ci`, `npm run type-check`, `npm run build`, and a Docker container build
 
 ### Normal publish path
 
 1. Merge PR to `main` with conventional commit message (`feat:` or `fix:`).
-2. Wait for semantic-release to create tag.
-3. Wait for `release-gui` run on that tag to publish image.
+2. Wait for semantic-release to create the GitHub Release and tag.
+3. Wait for `Build image on Release` to publish the semver-tagged image.
 
 ### Manual publish path
 
-If needed, you can run `release-gui` manually from GitHub Actions:
+If needed, you can run `Build image on Release` manually from GitHub Actions:
 
-- Workflow: `release-gui`
-- Input: `version` (must match `package.json` version)
+- Workflow: `Build image on Release`
+- Input: `version` (release tag, for example `v1.2.3`)
 
 ## Pull published image
 
 ```bash
 docker pull ghcr.io/noetl/gui:latest
+# or
+docker pull ghcr.io/noetl/gui:v<version>
 # or
 docker pull ghcr.io/noetl/gui:<version>
 ```
