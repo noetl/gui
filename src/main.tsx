@@ -266,9 +266,6 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
             <button type="button" className="mc-fkey" onClick={() => navigate("/execution")}>
               Execute
             </button>
-            <button type="button" className="mc-fkey" onClick={() => onThemeChange(appTheme === "dark" ? "light" : "dark")}>
-              {appTheme === "dark" ? "White" : "Dark"}
-            </button>
             <button type="button" className="mc-fkey mc-fkey-danger" onClick={handleLogout}>
               Logout
             </button>
