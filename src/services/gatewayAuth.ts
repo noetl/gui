@@ -1,4 +1,5 @@
 import { resolveGatewayBaseUrl } from "./gatewayBaseUrl";
+import { isEnvTrue, readAppEnv } from "./runtimeEnv";
 
 export type GatewayUser = {
   email?: string;
@@ -25,6 +26,7 @@ type PendingCallback = {
 
 const SESSION_TOKEN_KEY = "session_token";
 const USER_INFO_KEY = "user_info";
+const DEV_SKIP_AUTH_TOKEN = "dev-skip-auth";
 const PLAYBOOK_NAME = "api_integration/amadeus_ai_api";
 
 const MAX_RECONNECT_ATTEMPTS = 5;
@@ -52,19 +54,60 @@ function getGatewayBaseUrl(): string {
   return resolveGatewayBaseUrl();
 }
 
+function isLocalOrPrivateHost(hostname: string): boolean {
+  const normalized = hostname.replace(/^\[|\]$/g, "").toLowerCase();
+  if (
+    normalized === "localhost" ||
+    normalized === "127.0.0.1" ||
+    normalized === "::1" ||
+    normalized.endsWith(".local")
+  ) {
+    return true;
+  }
+  if (/^10\./.test(normalized) || /^192\.168\./.test(normalized)) {
+    return true;
+  }
+  return /^172\.(1[6-9]|2\d|3[0-1])\./.test(normalized);
+}
+
+function readHostnameFromUrl(value: string): string | null {
+  if (!value) {
+    return null;
+  }
+  try {
+    return new URL(value).hostname;
+  } catch {
+    return null;
+  }
+}
+
+export function isSkipAuthAllowed(): boolean {
+  if (!isEnvTrue("VITE_ALLOW_SKIP_AUTH")) {
+    return false;
+  }
+
+  const browserHostAllowed = isLocalOrPrivateHost(window.location.hostname);
+  const configuredApiBase = readAppEnv("VITE_API_BASE_URL");
+  const apiHostname = configuredApiBase
+    ? readHostnameFromUrl(configuredApiBase)
+    : readHostnameFromUrl(resolveGatewayBaseUrl());
+  if (!apiHostname) {
+    return false;
+  }
+
+  return browserHostAllowed && isLocalOrPrivateHost(apiHostname);
+}
+
 function getAuth0RedirectUri(): string {
-  return (
-    import.meta.env.VITE_AUTH0_REDIRECT_URI ||
-    `${window.location.origin}/login`
-  );
+  return readAppEnv("VITE_AUTH0_REDIRECT_URI", `${window.location.origin}/login`);
 }
 
 export function getAuth0Domain(): string {
-  return import.meta.env.VITE_AUTH0_DOMAIN || "mestumre-development.us.auth0.com";
+  return readAppEnv("VITE_AUTH0_DOMAIN", "mestumre-development.us.auth0.com");
 }
 
 export function getAuth0ClientId(): string {
-  return import.meta.env.VITE_AUTH0_CLIENT_ID || "Jqop7YoaiZalLHdBRo5ScNQ1RJhbhbDN";
+  return readAppEnv("VITE_AUTH0_CLIENT_ID", "Jqop7YoaiZalLHdBRo5ScNQ1RJhbhbDN");
 }
 
 export function getAuth0AuthorizeUrl(): string {
@@ -189,6 +232,22 @@ export function logout(): void {
 
 export function isAuthenticated(): boolean {
   return Boolean(getSessionToken());
+}
+
+export function isDevSkipAuth(): boolean {
+  return getSessionToken() === DEV_SKIP_AUTH_TOKEN;
+}
+
+export function loginAsDevUser(): void {
+  if (!isSkipAuthAllowed()) {
+    throw new Error("Skip authentication is only available for local development hosts.");
+  }
+  setSessionToken(DEV_SKIP_AUTH_TOKEN);
+  setUserInfo({
+    email: "dev@local",
+    display_name: "Local Dev User",
+    roles: ["admin"],
+  });
 }
 
 export async function checkPlaybookAccess(

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
     Layout,
     Row,
@@ -34,6 +34,7 @@ import {
 import { apiService } from "../services/api";
 import { CredentialData } from "../types";
 import "../styles/Credentials.css";
+import { useViewToolbar } from "./ViewToolbarContext";
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
@@ -41,6 +42,7 @@ const { Search, TextArea } = Input;
 const { TabPane } = Tabs;
 
 const Credentials: React.FC = () => {
+    const { setActions: setViewActions, clearActions: clearViewActions } = useViewToolbar();
     const [credentials, setCredentials] = useState<CredentialData[]>([]);
     const [allCredentials, setAllCredentials] = useState<CredentialData[]>([]);
     const [loading, setLoading] = useState(true);
@@ -120,9 +122,9 @@ const Credentials: React.FC = () => {
         [allCredentials],
     );
 
-    const handleSearch = (query: string) => {
+    const handleSearch = useCallback((query: string) => {
         handleSearchInternal(query);
-    };
+    }, [handleSearchInternal]);
 
     useEffect(() => {
         fetchCredentials();
@@ -148,11 +150,11 @@ const Credentials: React.FC = () => {
         }
     };
 
-    const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleSearchInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
         setSearchQuery(value);
         debounceSearch(value);
-    };
+    }, [debounceSearch]);
 
     const toggleDataVisibility = async (credentialId: string) => {
         const newVisibleIds = new Set(visibleDataIds);
@@ -210,7 +212,7 @@ const Credentials: React.FC = () => {
         return String(value);
     };
 
-    const handleCreateCredential = () => {
+    const handleCreateCredential = useCallback(() => {
         setModalMode("create");
         setEditingCredential(null);
         setInputMode("form");
@@ -218,7 +220,7 @@ const Credentials: React.FC = () => {
         setUploadFile(null);
         form.resetFields();
         setModalVisible(true);
-    };
+    }, [form]);
 
     const handleEditCredential = async (credential: CredentialData) => {
         setModalMode("edit");
@@ -319,6 +321,34 @@ const Credentials: React.FC = () => {
         setJsonInput(e.target.value);
     };
 
+    const credentialsViewActions = useMemo(() => (
+        <div className="credentials-view-toolbar">
+            <Search
+                className="credentials-toolbar-search"
+                placeholder="Search credentials..."
+                allowClear
+                enterButton={<SearchOutlined />}
+                size="middle"
+                loading={searchLoading}
+                value={searchQuery}
+                onSearch={handleSearch}
+                onChange={handleSearchInputChange}
+            />
+            <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={handleCreateCredential}
+            >
+                New Credential
+            </Button>
+        </div>
+    ), [handleCreateCredential, handleSearch, handleSearchInputChange, searchLoading, searchQuery]);
+
+    useEffect(() => {
+        setViewActions(credentialsViewActions);
+        return clearViewActions;
+    }, [clearViewActions, credentialsViewActions, setViewActions]);
+
     const getExampleJson = (type: string) => {
         const examples: Record<string, any> = {
             postgres: {
@@ -396,28 +426,6 @@ const Credentials: React.FC = () => {
     return (
         <Content className="credentials-main-content">
             <Space direction="vertical" size="large" className="credentials-space-vertical">
-                <div className="credentials-header">
-                    <Title level={2}>🔐 Credentials</Title>
-                    <Button
-                        type="primary"
-                        icon={<PlusOutlined />}
-                        onClick={handleCreateCredential}
-                    >
-                        New Credential
-                    </Button>
-                </div>
-
-                <Search
-                    placeholder="Search credentials by name, type, description, or tags..."
-                    allowClear
-                    enterButton={<SearchOutlined />}
-                    size="large"
-                    loading={searchLoading}
-                    value={searchQuery}
-                    onSearch={handleSearch}
-                    onChange={handleSearchInputChange}
-                />
-
                 {/* Credentials list */}
                 <Space direction="vertical" size="middle" className="credentials-credentials-space">
                     {credentials.map((credential) => (

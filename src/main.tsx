@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import type React from "react";
 import { createRoot } from "react-dom/client";
 import {
@@ -10,7 +10,7 @@ import {
   useLocation,
   Navigate,
 } from "react-router-dom";
-import { Layout, Menu, ConfigProvider, Result, Button, App as AntdApp, Spin } from "antd";
+import { Layout, ConfigProvider, Result, Button, App as AntdApp, Spin, Segmented } from "antd";
 
 // Import components
 import Catalog from "./components/Catalog";
@@ -20,16 +20,57 @@ import Execution from "./components/Execution";
 import ExecutionDetail from "./components/ExecutionDetail";
 import GatewayLogin from "./components/GatewayLogin";
 import GatewayAssistant from "./components/GatewayAssistant";
+import NoetlPrompt from "./components/NoetlPrompt";
 import UserManagement from "./components/UserManagement";
+import { ViewToolbarContext } from "./components/ViewToolbarContext";
+import {
+  AppstoreOutlined,
+  CodeOutlined,
+  DatabaseOutlined,
+  EyeOutlined,
+  KeyOutlined,
+  TeamOutlined,
+} from "@ant-design/icons";
 
 // Import auth functions
-import { isAuthenticated, getUserInfo, validateSession, logout, type GatewayUser } from "./services/gatewayAuth";
+import { isAuthenticated, getUserInfo, validateSession, logout, isDevSkipAuth, isSkipAuthAllowed, type GatewayUser } from "./services/gatewayAuth";
+import { apiService } from "./services/api";
 
 // Import styles
 import "antd/dist/reset.css";
 import "../static/css/main.css";
 
 const { Header, Content, Footer } = Layout;
+type AppTheme = "dark" | "light";
+const THEME_STORAGE_KEY = "noetl-ui-theme";
+
+function readStoredTheme(): AppTheme {
+  if (typeof window === "undefined") return "dark";
+  return window.localStorage.getItem(THEME_STORAGE_KEY) === "light" ? "light" : "dark";
+}
+
+const appThemeTokens: Record<AppTheme, {
+  colorBgContainer: string;
+  colorBgLayout: string;
+  colorBorder: string;
+  colorPrimary: string;
+  colorText: string;
+}> = {
+  dark: {
+    colorPrimary: "#6fdc6f",
+    colorBgContainer: "#071007",
+    colorBgLayout: "#050805",
+    colorText: "#9cff9c",
+    colorBorder: "#2f6f2f",
+  },
+  light: {
+    colorPrimary: "#0f6b3a",
+    colorBgContainer: "#ffffff",
+    colorBgLayout: "#f5f7f5",
+    colorText: "#102010",
+    colorBorder: "#c9d8c9",
+  },
+};
 
 // Define menu items with required roles
 // admin: sees all, developer: sees noetl tools, analyst/viewer: sees travel only
@@ -37,17 +78,19 @@ type MenuItem = {
   key: string;
   label: string;
   path: string;
+  section: "Catalog" | "Build" | "Operate" | "Admin";
+  icon: React.ReactNode;
   roles: string[]; // empty array means all authenticated users, specific roles restrict access
   adminOnly?: boolean; // if true, only admin can see
 };
 
 const ALL_MENU_ITEMS: MenuItem[] = [
-  { key: "/catalog", label: "Catalog", path: "/catalog", roles: [], adminOnly: true },
-  { key: "/credentials", label: "Credentials", path: "/credentials", roles: [], adminOnly: true },
-  { key: "/editor", label: "Editor", path: "/editor", roles: [], adminOnly: true },
-  { key: "/execution", label: "Execution", path: "/execution", roles: [], adminOnly: true },
-  { key: "/travel", label: "Travel", path: "/travel", roles: ["analyst", "viewer", "developer", "admin"] },
-  { key: "/users", label: "Users", path: "/users", roles: [], adminOnly: true },
+  { key: "/catalog", label: "catalog", path: "/catalog", section: "Catalog", icon: <AppstoreOutlined />, roles: [], adminOnly: true },
+  { key: "/execution", label: "observe", path: "/execution", section: "Operate", icon: <EyeOutlined />, roles: [], adminOnly: true },
+  { key: "/users", label: "users", path: "/users", section: "Admin", icon: <TeamOutlined />, roles: [], adminOnly: true },
+  { key: "/editor", label: "edit", path: "/editor", section: "Build", icon: <CodeOutlined />, roles: [], adminOnly: true },
+  { key: "/credentials", label: "secrets", path: "/credentials", section: "Admin", icon: <KeyOutlined />, roles: [], adminOnly: true },
+  { key: "/travel", label: "travel", path: "/travel", section: "Operate", icon: <DatabaseOutlined />, roles: ["analyst", "viewer", "developer", "admin"] },
 ];
 
 function hasAccess(item: MenuItem, userRoles: string[]): boolean {
@@ -104,38 +147,37 @@ const AccessDenied: React.FC = () => {
 };
 
 // Login page wrapper (no layout/menu)
-const LoginPage: React.FC = () => {
+const LoginPage: React.FC<{ appTheme: AppTheme }> = ({ appTheme }) => {
   return (
-    <ConfigProvider
-      theme={{
-        token: {
-          colorPrimary: "#1890ff",
-          borderRadius: 8,
-          colorBgContainer: "#ffffff",
-          colorBgLayout: "#f5f5f5",
-        },
-      }}
-    >
-      <AntdApp>
-        <div style={{ minHeight: "100vh", background: "#f5f5f5", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <GatewayLogin />
-        </div>
-      </AntdApp>
-    </ConfigProvider>
+    <div className={`login-shell theme-${appTheme}`}>
+      <GatewayLogin />
+    </div>
   );
 };
 
 // Main authenticated app with menu
-const AuthenticatedApp: React.FC = () => {
+const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: AppTheme) => void }> = ({
+  appTheme,
+  onThemeChange,
+}) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [user, setUser] = useState<GatewayUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [consoleVisible, setConsoleVisible] = useState(true);
+  const [dashboardVisible, setDashboardVisible] = useState(true);
+  const [viewToolbarActions, setViewToolbarActions] = useState<React.ReactNode>(null);
 
   useEffect(() => {
     const checkAuth = async () => {
       if (!isAuthenticated()) {
         navigate("/login", { replace: true });
+        return;
+      }
+
+      if (isSkipAuthAllowed() && isDevSkipAuth()) {
+        setUser(getUserInfo());
+        setLoading(false);
         return;
       }
 
@@ -166,11 +208,43 @@ const AuthenticatedApp: React.FC = () => {
     return ALL_MENU_ITEMS.filter((item) => hasAccess(item, userRoles));
   }, [userRoles]);
 
-  const activeMenuKey = useMemo(() => {
-    // Find the menu item that matches current path
-    const match = visibleMenuItems.find((item) => location.pathname.startsWith(item.key));
-    return match?.key || "";
+  const primaryMenuItems = useMemo(() => {
+    return visibleMenuItems.filter((item) => item.key !== "/users");
+  }, [visibleMenuItems]);
+
+  const footerMenuItems = useMemo(() => {
+    const footerLabels: Record<string, string> = {
+      "/catalog": "Catalog",
+      "/execution": "Runs",
+      "/editor": "Edit",
+      "/credentials": "Creds",
+      "/travel": "Travel",
+      "/users": "Users",
+    };
+    return visibleMenuItems
+      .filter((item) => footerLabels[item.path])
+      .map((item) => ({ path: item.path, label: footerLabels[item.path] }));
+  }, [visibleMenuItems]);
+
+  const activeRoute = useMemo(() => {
+    return visibleMenuItems.find((item) => location.pathname === item.path || location.pathname.startsWith(`${item.path}/`));
   }, [location.pathname, visibleMenuItems]);
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login", { replace: true });
+  };
+
+  const clearViewToolbarActions = useCallback(() => setViewToolbarActions(null), []);
+
+  const viewToolbarValue = useMemo(() => ({
+    actions: viewToolbarActions,
+    setActions: setViewToolbarActions,
+    clearActions: clearViewToolbarActions,
+  }), [clearViewToolbarActions, viewToolbarActions]);
+
+  const runtimeContext = useMemo(() => apiService.getRuntimeContext(), []);
+  const runtimeLabel = runtimeContext.displayName.toUpperCase();
 
   if (loading) {
     return (
@@ -180,79 +254,115 @@ const AuthenticatedApp: React.FC = () => {
     );
   }
 
-  const handleLogout = () => {
-    logout();
-    navigate("/login", { replace: true });
-  };
-
   return (
-    <Layout className="app" style={{ minHeight: "100vh", background: "#f5f5f5" }}>
-      <Header className="app-header">
-        <div className="header-inner">
-          <div className="logo">NoETL Dashboard</div>
-          <Menu
-            theme="light"
-            mode="horizontal"
-            selectedKeys={[activeMenuKey]}
-            className="centered-menu"
-            items={[
-              ...visibleMenuItems.map((item) => ({
-                key: item.key,
-                label: item.label,
-                onClick: () => navigate(item.path),
-              })),
-              {
-                key: "logout",
-                label: "Logout",
-                onClick: handleLogout,
-                style: { marginLeft: "auto" },
-              },
+    <Layout className={`app terminal-app theme-${appTheme}`} style={{ minHeight: "100vh" }}>
+      <Header className={`app-header console-header ${consoleVisible ? "" : "console-header-collapsed"}`}>
+        <div className="header-inner mc-top-line">
+          <div className="logo">NOETL://{runtimeLabel}</div>
+          <nav className="mc-menubar" aria-label="NoETL workspace menu">
+            {primaryMenuItems.map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                className={`mc-menu-item ${activeRoute?.key === item.key ? "active" : ""}`}
+                onClick={() => navigate(item.path)}
+              >
+                <span className="mc-menu-hotkey">{item.label.slice(0, 1)}</span>{item.label.slice(1)}
+              </button>
+            ))}
+          </nav>
+          <div className="mc-command-line" aria-label="NoETL command bar">
+            <button type="button" className="mc-fkey" onClick={() => setConsoleVisible((value) => !value)}>
+              Terminal
+            </button>
+            <button type="button" className="mc-fkey" onClick={() => setDashboardVisible((value) => !value)}>
+              Dashboard
+            </button>
+            <button type="button" className="mc-fkey" onClick={() => navigate("/execution")}>
+              Runs
+            </button>
+            {userRoles.includes("admin") && (
+              <button type="button" className="mc-fkey" onClick={() => navigate("/users")}>
+                Users
+              </button>
+            )}
+            <button type="button" className="mc-fkey" onClick={() => setConsoleVisible(true)}>
+              Help
+            </button>
+            <button type="button" className="mc-fkey mc-fkey-danger" onClick={handleLogout}>
+              Logout
+            </button>
+          </div>
+          <span className="mc-context">kind:{activeRoute?.label || "workspace"}</span>
+          <Segmented<AppTheme>
+            className="theme-switch"
+            size="small"
+            value={appTheme}
+            options={[
+              { label: "dark", value: "dark" },
+              { label: "white", value: "light" },
             ]}
+            onChange={onThemeChange}
           />
         </div>
+        {consoleVisible && <NoetlPrompt className="header-prompt" />}
       </Header>
-      <Content style={{ padding: "24px", margin: "0 24px" }}>
-        <div
-          className="AppRoutesContent"
-          style={{
-            background: "#fff",
-            padding: "24px",
-            borderRadius: "12px",
-            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.06)",
-          }}
-        >
-          <Routes>
-            <Route
-              path="/"
-              element={
-                visibleMenuItems[0] ? (
-                  <Navigate to={visibleMenuItems[0].path} replace />
-                ) : (
-                  <AccessDenied />
-                )
-              }
-            />
-            <Route path="/catalog" element={userRoles.includes("admin") ? <Catalog /> : <AccessDenied />} />
-            <Route path="/credentials" element={userRoles.includes("admin") ? <Credentials /> : <AccessDenied />} />
-            <Route path="/editor" element={userRoles.includes("admin") ? <Editor /> : <AccessDenied />} />
-            <Route path="/execution" element={userRoles.includes("admin") ? <Execution /> : <AccessDenied />} />
-            <Route path="/execution/:id" element={userRoles.includes("admin") ? <ExecutionDetail /> : <AccessDenied />} />
-            <Route path="/travel" element={<GatewayAssistant />} />
-            <Route path="/users" element={userRoles.includes("admin") ? <UserManagement /> : <AccessDenied />} />
-            {/* Catch-all route for 404 */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </div>
-      </Content>
-      <Footer
-        style={{
-          textAlign: "center",
-          background: "transparent",
-          color: "#8c8c8c",
-          fontSize: "14px",
-        }}
-      >
-        NoETL 2025
+      <ViewToolbarContext.Provider value={viewToolbarValue}>
+        <Content className="terminal-content">
+          {dashboardVisible ? (
+            <>
+              <div className="dashboard-window-bar">
+                <span className="mc-panel-title">VIEW::{location.pathname || "/"}</span>
+                {viewToolbarActions && <div className="dashboard-window-actions">{viewToolbarActions}</div>}
+                <Button className="mc-menu-button" size="small" onClick={() => setDashboardVisible(false)}>
+                  hide view
+                </Button>
+              </div>
+              <div className="AppRoutesContent terminal-panel dashboard-window">
+                <Routes>
+                  <Route
+                    path="/"
+                    element={
+                      visibleMenuItems[0] ? (
+                        <Navigate to={visibleMenuItems[0].path} replace />
+                      ) : (
+                        <AccessDenied />
+                      )
+                    }
+                  />
+                  <Route path="/catalog" element={userRoles.includes("admin") ? <Catalog /> : <AccessDenied />} />
+                  <Route path="/credentials" element={userRoles.includes("admin") ? <Credentials /> : <AccessDenied />} />
+                  <Route path="/editor" element={userRoles.includes("admin") ? <Editor /> : <AccessDenied />} />
+                  <Route path="/execution" element={userRoles.includes("admin") ? <Execution /> : <AccessDenied />} />
+                  <Route path="/execution/:id" element={userRoles.includes("admin") ? <ExecutionDetail /> : <AccessDenied />} />
+                  <Route path="/travel" element={<GatewayAssistant />} />
+                  <Route path="/users" element={userRoles.includes("admin") ? <UserManagement /> : <AccessDenied />} />
+                  {/* Catch-all route for 404 */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </div>
+            </>
+          ) : (
+            <div className="dashboard-window-toggle">
+              <span>view window hidden :: {location.pathname || "/"}</span>
+              <Button className="mc-menu-button" size="small" onClick={() => setDashboardVisible(true)}>
+                show view
+              </Button>
+            </div>
+          )}
+        </Content>
+      </ViewToolbarContext.Provider>
+      <Footer className="mc-function-footer">
+        <button type="button" onClick={() => setConsoleVisible(true)}>Help</button>
+        <button type="button" onClick={() => setConsoleVisible((value) => !value)}>Terminal</button>
+        <button type="button" onClick={() => setDashboardVisible((value) => !value)}>Dashboard</button>
+        {footerMenuItems.map((item) => (
+          <button key={item.path} type="button" onClick={() => navigate(item.path)}>
+            {item.label}
+          </button>
+        ))}
+        <button type="button" onClick={() => onThemeChange(appTheme === "dark" ? "light" : "dark")}>Theme</button>
+        <button type="button" onClick={handleLogout}>Quit</button>
       </Footer>
     </Layout>
   );
@@ -260,21 +370,31 @@ const AuthenticatedApp: React.FC = () => {
 
 // Root App component - handles routing between login and authenticated app
 const App: React.FC = () => {
+  const [appTheme, setAppTheme] = useState<AppTheme>(() => readStoredTheme());
+  const tokens = appThemeTokens[appTheme];
+
+  useEffect(() => {
+    window.localStorage.setItem(THEME_STORAGE_KEY, appTheme);
+    document.documentElement.dataset.noetlTheme = appTheme;
+  }, [appTheme]);
+
   return (
     <ConfigProvider
       theme={{
         token: {
-          colorPrimary: "#1890ff",
-          borderRadius: 8,
-          colorBgContainer: "#ffffff",
-          colorBgLayout: "#f5f5f5",
+          colorPrimary: tokens.colorPrimary,
+          borderRadius: 0,
+          colorBgContainer: tokens.colorBgContainer,
+          colorBgLayout: tokens.colorBgLayout,
+          colorText: tokens.colorText,
+          colorBorder: tokens.colorBorder,
         },
       }}
     >
       <AntdApp>
         <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/*" element={<AuthenticatedApp />} />
+          <Route path="/login" element={<LoginPage appTheme={appTheme} />} />
+          <Route path="/*" element={<AuthenticatedApp appTheme={appTheme} onThemeChange={setAppTheme} />} />
         </Routes>
       </AntdApp>
     </ConfigProvider>

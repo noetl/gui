@@ -35,9 +35,38 @@
 
 .catalog-header {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: center;
     width: 100%;
+}
+
+.catalog-view-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    width: 100%;
+}
+
+.catalog-toolbar-search {
+    flex: 1 1 360px;
+    max-width: 720px;
+    min-width: 180px;
+}
+
+.catalog-view-toolbar .ant-btn {
+    flex: 0 0 auto;
+}
+
+@media (max-width: 720px) {
+    .catalog-view-toolbar {
+        flex-wrap: wrap;
+    }
+
+    .catalog-toolbar-search {
+        flex-basis: 100%;
+        max-width: none;
+    }
 }
 
 /* ==========================================================================
@@ -83,4 +112,32 @@
 
 .catalog-modal-pre {
     width: 100%;
+}
+
+.catalog-explain-content {
+    width: 100%;
+}
+
+.catalog-explain-meta {
+    color: var(--mc-muted) !important;
+}
+
+.catalog-explain-section {
+    border: 1px solid var(--mc-border-dim);
+    border-radius: var(--noetl-radius-sm);
+    background: var(--mc-panel-deep);
+    padding: 10px 12px;
+}
+
+.catalog-explain-section p {
+    margin: 8px 0 0;
+}
+
+.catalog-explain-section ul {
+    margin: 8px 0 0;
+    padding-left: 20px;
+}
+
+.catalog-explain-section li + li {
+    margin-top: 6px;
 }

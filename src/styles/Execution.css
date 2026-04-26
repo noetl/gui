@@ -29,6 +29,59 @@
     width: 100%;
 }
 
+.execution-view-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    width: 100%;
+    flex-wrap: wrap;
+}
+
+.execution-toolbar-label {
+    flex: 1 1 auto;
+    min-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-transform: uppercase;
+}
+
+.execution-toolbar-tabs {
+    flex: 0 0 auto;
+    min-width: 0;
+}
+
+.execution-toolbar-tabs .ant-tabs-nav {
+    margin: 0 !important;
+}
+
+.execution-toolbar-tabs .ant-tabs-tab {
+    padding: 3px 8px !important;
+}
+
+.execution-toolbar-search {
+    flex: 1 1 220px;
+    min-width: 180px;
+    max-width: 360px;
+}
+
+.execution-toolbar-select {
+    flex: 0 1 220px;
+    min-width: 160px;
+}
+
+.execution-toolbar-playbook {
+    flex: 1 1 260px;
+    min-width: 180px;
+    max-width: 420px;
+}
+
+.execution-toolbar-date {
+    flex: 0 1 280px;
+    min-width: 220px;
+}
+
 /* ==========================================================================
    Flow Visualization
    ========================================================================== */

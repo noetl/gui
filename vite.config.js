@@ -1,12 +1,17 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// Gateway-only mode: all UI traffic must go through NoETL Gateway.
-let gatewayUrl = process.env.VITE_GATEWAY_URL
-if (!gatewayUrl) {
-  gatewayUrl = "http://localhost:8090"
+// Support either gateway mode (default) or direct noetl-server mode
+let apiMode = process.env.VITE_API_MODE;
+if (apiMode !== "direct") {
+  apiMode = "gateway";
 }
-console.log("VITE_GATEWAY_URL=", gatewayUrl)
+
+let gatewayUrl = process.env.VITE_GATEWAY_URL || process.env.VITE_API_BASE_URL;
+if (!gatewayUrl) {
+  gatewayUrl = apiMode === "direct" ? "http://localhost:8082" : "http://localhost:8090";
+}
+console.log(`VITE_API_MODE=${apiMode} URL=${gatewayUrl}`)
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -19,7 +24,6 @@ export default defineConfig({
     port: 3001,
   },
   define: {
-    // Keep legacy global for compatibility; points to gateway API base.
     __FASTAPI_URL__: JSON.stringify(`${gatewayUrl.replace(/\/+$/, "")}/api`)
   }
 })

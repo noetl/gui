@@ -8,6 +8,7 @@ import {
   Typography,
   Space,
 } from "antd";
+import type { TablePaginationConfig } from "antd/es/table/interface";
 import { VisualizationWidget, TableColumn } from "../types";
 
 const { Title, Text } = Typography;
@@ -15,6 +16,9 @@ const { Title, Text } = Typography;
 interface WidgetRendererProps {
   widget: VisualizationWidget;
 }
+
+const isPaginationConfig = (value: unknown): value is TablePaginationConfig =>
+  value !== null && typeof value === "object" && !Array.isArray(value);
 
 const WidgetRenderer: React.FC<WidgetRendererProps> = ({ widget }) => {
   const renderContent = () => {
@@ -69,9 +73,9 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = ({ widget }) => {
               dataSource={widget.data.rows}
               columns={columns}
               pagination={
-                typeof widget.config.pagination === "object" ||
-                  widget.config.pagination === false ||
-                  widget.config.pagination === undefined
+                isPaginationConfig(widget.config.pagination) ||
+                widget.config.pagination === false ||
+                widget.config.pagination === undefined
                   ? widget.config.pagination
                   : false
               }

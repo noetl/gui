@@ -5,9 +5,12 @@ import {
   getAuth0AuthorizeUrl,
   getUserInfo,
   isAuthenticated,
+  isSkipAuthAllowed,
+  loginAsDevUser,
   loginWithAuth0Token,
   validateSession,
 } from "../services/gatewayAuth";
+
 import "../styles/Gateway.css";
 
 const { Title, Text } = Typography;
@@ -27,6 +30,7 @@ const GatewayLogin = () => {
   const [tokenLoading, setTokenLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const auth0Url = useMemo(() => getAuth0AuthorizeUrl(), []);
+  const allowSkipAuth = useMemo(() => isSkipAuthAllowed(), []);
 
   useEffect(() => {
     const initialize = async () => {
@@ -131,6 +135,27 @@ const GatewayLogin = () => {
               Sign In with Token
             </Button>
           </Form>
+
+          {allowSkipAuth && (
+            <>
+              <Divider plain>LOCAL DEV</Divider>
+              <Button
+                type="dashed"
+                block
+                onClick={() => {
+                  try {
+                    loginAsDevUser();
+                    navigate("/", { replace: true });
+                  } catch (error) {
+                    const detail = error instanceof Error ? error.message : "Skip authentication is unavailable";
+                    setMessage({ type: "error", text: detail });
+                  }
+                }}
+              >
+                Continue without Authentication
+              </Button>
+            </>
+          )}
         </Space>
       </Card>
     </div>

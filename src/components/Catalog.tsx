@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Layout,
   Row,
@@ -32,6 +32,7 @@ import { PlaybookData } from "../types";
 import "../styles/Catalog.css";
 import { useNavigate } from "react-router-dom";
 import { AxiosError } from "axios";
+import { useViewToolbar } from "./ViewToolbarContext";
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
@@ -39,8 +40,55 @@ const { Search } = Input;
 const { TextArea } = Input;
 const { TabPane } = Tabs;
 
+interface ExplainAIReport {
+  executive_summary?: string;
+  architecture_overview?: string;
+  step_by_step?: unknown[];
+  risks?: unknown[];
+  improvement_opportunities?: unknown[];
+  test_recommendations?: unknown[];
+  assumptions?: unknown[];
+}
+
+const EMPTY_EXPLAIN_SUMMARY = "No structured explanation returned by AI playbook.";
+
+function normalizeExplainList(value: unknown): string[] {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.map((item) => String(item)).filter(Boolean);
+  return [String(value)].filter(Boolean);
+}
+
+function hasStructuredExplainReport(report: ExplainAIReport | null | undefined): boolean {
+  if (!report) return false;
+  const summary = String(report.executive_summary || "").trim();
+  return Boolean(
+    (summary && summary !== EMPTY_EXPLAIN_SUMMARY)
+    || String(report.architecture_overview || "").trim()
+    || normalizeExplainList(report.step_by_step).length
+    || normalizeExplainList(report.risks).length
+    || normalizeExplainList(report.improvement_opportunities).length
+    || normalizeExplainList(report.test_recommendations).length
+    || normalizeExplainList(report.assumptions).length
+  );
+}
+
+function ExplainSection({ title, items }: { title: string; items: string[] }) {
+  if (!items.length) return null;
+  return (
+    <section className="catalog-explain-section">
+      <Text strong>{title}</Text>
+      <ul>
+        {items.map((item, index) => (
+          <li key={`${title}-${index}`}>{item}</li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 const Catalog: React.FC = () => {
   const navigate = useNavigate();
+  const { setActions: setViewActions, clearActions: clearViewActions } = useViewToolbar();
   const [playbooks, setPlaybooks] = useState<PlaybookData[]>([]);
   const [allPlaybooks, setAllPlaybooks] = useState<PlaybookData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -134,9 +182,9 @@ const Catalog: React.FC = () => {
     [allPlaybooks],
   );
 
-  const handleSearch = (query: string) => {
+  const handleSearch = useCallback((query: string) => {
     handleSearchInternal(query);
-  };
+  }, [handleSearchInternal]);
 
   useEffect(() => {
     fetchCatalogData();
@@ -162,11 +210,11 @@ const Catalog: React.FC = () => {
     }
   };
 
-  const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSearchInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchQuery(value);
     debounceSearch(value);
-  };
+  }, [debounceSearch]);
 
   const handleExecutePlaybook = async (catalog_id: string) => {
     try {
@@ -271,7 +319,7 @@ const Catalog: React.FC = () => {
     return false; // Prevent auto upload
   };
 
-  const handleOpenCreateModal = () => {
+  const handleOpenCreateModal = useCallback(() => {
     setCreateModalVisible(true);
     setCreatePlaybookJson("");
     setCreatePlaybookFile(null);
@@ -279,7 +327,7 @@ const Catalog: React.FC = () => {
     setCreatePlaybookAiPrompt("");
     setCreatePlaybookAiDraft("");
     setCreatePlaybookAiResult(null);
-  };
+  }, []);
 
   const handleCloseCreateModal = () => {
     setCreateModalVisible(false);
@@ -393,6 +441,9 @@ const Catalog: React.FC = () => {
     setExplainResult(null);
   };
 
+  const explainReport = (explainResult?.ai_report || null) as ExplainAIReport | null;
+  const explainHasStructuredReport = hasStructuredExplainReport(explainReport);
+
   const handleViewFlow = (playbookId: string, playbookName: string) => {
     // Navigate to execution page with playbook visualization (query + state)
     navigate(`/execution?playbook=${encodeURIComponent(playbookId)}&view=workflow`, {
@@ -412,6 +463,35 @@ const Catalog: React.FC = () => {
         return "default";
     }
   };
+
+  const catalogViewActions = useMemo(() => (
+    <div className="catalog-view-toolbar">
+      <Search
+        className="catalog-toolbar-search"
+        placeholder="Search playbooks..."
+        allowClear
+        enterButton={<SearchOutlined />}
+        size="middle"
+        loading={searchLoading}
+        value={searchQuery}
+        onSearch={handleSearch}
+        onChange={handleSearchInputChange}
+        data-pw="catalog.search"
+      />
+      <Button
+        type="primary"
+        icon={<PlusOutlined />}
+        onClick={handleOpenCreateModal}
+      >
+        New Playbook
+      </Button>
+    </div>
+  ), [handleOpenCreateModal, handleSearch, handleSearchInputChange, searchLoading, searchQuery]);
+
+  useEffect(() => {
+    setViewActions(catalogViewActions);
+    return clearViewActions;
+  }, [catalogViewActions, clearViewActions, setViewActions]);
 
   if (loading) {
     return (
@@ -433,29 +513,6 @@ const Catalog: React.FC = () => {
   return (
     <Content className="catalog-main-content">
       <Space direction="vertical" size="large" className="catalog-space-vertical">
-        <div className="catalog-header">
-          <Title level={2}>📚 Playbook Catalog</Title>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={handleOpenCreateModal}
-          >
-            New Playbook
-          </Button>
-        </div>
-
-        <Search
-          placeholder="Search playbooks..."
-          allowClear
-          enterButton={<SearchOutlined />}
-          size="large"
-          loading={searchLoading}
-          value={searchQuery}
-          onSearch={handleSearch}
-          onChange={handleSearchInputChange}
-          data-pw={`catalog.search`}
-        />
-
         {/* Playbooks list */}
         <Space direction="vertical" size="middle" className="catalog-playbooks-space">
           {playbooks.map((playbook) => (
@@ -487,7 +544,9 @@ const Catalog: React.FC = () => {
                         </Text>
                         <Text type="secondary">
                           Updated:{" "}
-                          {new Date(playbook.meta?.registered_at).toLocaleDateString()}
+                          {playbook.meta?.registered_at
+                            ? new Date(playbook.meta.registered_at).toLocaleDateString()
+                            : "-"}
                         </Text>
                       </Space>
                       {playbook.payload?.metadata?.description && (
@@ -795,6 +854,7 @@ workflow:
         title={`Explain Playbook with AI${explainResult?.target_path ? `: ${explainResult.target_path}` : ""}`}
         open={explainModalVisible}
         onCancel={handleCloseExplainModal}
+        className="catalog-explain-modal"
         width={900}
         footer={[
           <Button key="close" onClick={handleCloseExplainModal}>
@@ -816,16 +876,35 @@ workflow:
           </Button>,
         ]}
       >
-        <Space direction="vertical" size="middle" style={{ width: "100%" }}>
-          <Text type="secondary">
+        <Space direction="vertical" size="middle" className="catalog-explain-content">
+          <Text className="catalog-explain-meta">
             AI execution: {explainResult?.ai_execution_id || "-"} ({explainResult?.ai_execution_status || "unknown"})
           </Text>
-          <TextArea
-            rows={20}
-            readOnly
-            value={JSON.stringify(explainResult?.ai_report || {}, null, 2)}
-            style={{ fontFamily: "monospace" }}
-          />
+          {!explainHasStructuredReport && (
+            <Alert
+              type="warning"
+              showIcon
+              message="AI execution completed without a structured explanation."
+              description="The server did not find ai_report in the explain playbook output. Open the execution details to inspect the raw events."
+            />
+          )}
+          {explainReport?.executive_summary && explainReport.executive_summary !== EMPTY_EXPLAIN_SUMMARY && (
+            <section className="catalog-explain-section">
+              <Text strong>Executive Summary</Text>
+              <p>{explainReport.executive_summary}</p>
+            </section>
+          )}
+          {explainReport?.architecture_overview && (
+            <section className="catalog-explain-section">
+              <Text strong>Architecture Overview</Text>
+              <p>{explainReport.architecture_overview}</p>
+            </section>
+          )}
+          <ExplainSection title="Step By Step" items={normalizeExplainList(explainReport?.step_by_step)} />
+          <ExplainSection title="Risks" items={normalizeExplainList(explainReport?.risks)} />
+          <ExplainSection title="Improvement Opportunities" items={normalizeExplainList(explainReport?.improvement_opportunities)} />
+          <ExplainSection title="Test Recommendations" items={normalizeExplainList(explainReport?.test_recommendations)} />
+          <ExplainSection title="Assumptions" items={normalizeExplainList(explainReport?.assumptions)} />
         </Space>
       </Modal>
     </Content>
