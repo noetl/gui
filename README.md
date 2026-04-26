@@ -77,7 +77,7 @@ docker run --rm -p 8080:8080 \
 
 ## Release and publish
 
-This repo uses two workflows:
+This repo uses these workflows:
 
 - `Semantic Release ⚙️` (`.github/workflows/release.yml`)
   - Trigger: push to `main`
