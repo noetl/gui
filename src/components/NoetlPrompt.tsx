@@ -122,6 +122,35 @@ function summarizeExecutions(executions: ExecutionData[]): { text: string; actio
   };
 }
 
+function summarizeMcpTools(tools: Array<{ name: string; title?: string; description?: string }>): string {
+  if (tools.length === 0) return "no MCP tools exposed";
+  return tools
+    .slice(0, 18)
+    .map((tool) => `${tool.name}${tool.title ? ` :: ${tool.title}` : ""}${tool.description ? ` :: ${tool.description}` : ""}`)
+    .join("\n");
+}
+
+function parseKubernetesArgs(parts: string[]): Record<string, unknown> {
+  const args: Record<string, unknown> = {};
+  const positional: string[] = [];
+  for (const part of parts) {
+    const match = part.match(/^([A-Za-z0-9_.-]+)=(.+)$/);
+    if (match) {
+      args[match[1]] = match[2];
+    } else {
+      positional.push(part);
+    }
+  }
+  if (positional[0]) args.name = positional[0];
+  if (positional[1]) args.namespace = positional[1];
+  if (positional[2]) args.container = positional[2];
+  return args;
+}
+
+function formatMcpToolResult(text: string): string {
+  return text.trim().length > 0 ? text.trim() : "-";
+}
+
 function resolveRoute(target: string): PromptAction | undefined {
   const normalized = target.trim().replace(/^\/+/, "").toLowerCase();
   if (!normalized || normalized === "." || normalized === "~" || normalized === "/") {
@@ -236,6 +265,9 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
             "fix <execution_id>              produce a diagnostic report",
             "rerun <execution_id> [json]     rerun an execution",
             "stop <execution_id>             stop a running execution",
+            "mcp status|tools                inspect configured MCP servers",
+            "k8s pods|ns|events|deploy|svc   query Kubernetes through MCP",
+            "k8s deploy|svc|logs|top|noetl   inspect workloads, logs, usage",
             "clear                           clear prompt history",
           ].join("\n"),
           actions: [
@@ -243,6 +275,8 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
             { label: "playbooks", command: "playbooks" },
             { label: "executions", command: "executions" },
             { label: "status", command: "status" },
+            { label: "mcp status", command: "mcp status" },
+            { label: "k8s pods", command: "k8s pods" },
           ],
         });
       } else if (verb === "menu") {
@@ -262,6 +296,8 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
             ...ROUTES,
             { label: "playbooks", command: "playbooks", description: "catalog entries" },
             { label: "executions", command: "executions", description: "recent execution processes" },
+            { label: "mcp", command: "mcp status", description: "available model context servers" },
+            { label: "k8s", command: "k8s pods", description: "kubernetes runtime via MCP" },
           ],
         });
       } else if (verb === "cd") {
@@ -289,6 +325,77 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
       } else if (verb === "status") {
         const health = await apiService.getHealth();
         append({ tone: health.status === "ok" || health.status === "healthy" ? "success" : "output", text: compactJson(health) });
+      } else if (verb === "mcp") {
+        const subcommand = (restParts[0] || "status").toLowerCase();
+        if (subcommand === "status") {
+          const health = await apiService.getKubernetesMcpHealth();
+          const tools = health.ok ? await apiService.listKubernetesMcpTools() : [];
+          append({
+            tone: health.ok ? "success" : "error",
+            text: [
+              `kubernetes :: ${health.message}`,
+              `url=${health.url || "-"}`,
+              `tools=${tools.length}`,
+            ].join("\n"),
+            actions: health.ok ? [
+              { label: "mcp tools", command: "mcp tools" },
+              { label: "k8s namespaces", command: "k8s namespaces" },
+              { label: "k8s pods", command: "k8s pods" },
+              { label: "k8s events", command: "k8s events" },
+            ] : [],
+          });
+        } else if (subcommand === "tools") {
+          const tools = await apiService.listKubernetesMcpTools();
+          append({ tone: "output", text: summarizeMcpTools(tools) });
+        } else {
+          throw new Error("usage: mcp status|tools");
+        }
+      } else if (verb === "k8s" || verb === "kube" || verb === "kubectl") {
+        const subject = (restParts[0] || "pods").toLowerCase();
+        const args = restParts.slice(1);
+        let toolName = "";
+        let toolArgs: Record<string, unknown> = {};
+        if (subject === "namespaces" || subject === "ns") {
+          toolName = "namespaces_list";
+        } else if (subject === "pods" || subject === "po") {
+          if (args[0]) {
+            toolName = "pods_list_in_namespace";
+            toolArgs = { namespace: args[0] };
+          } else {
+            toolName = "pods_list";
+          }
+        } else if (subject === "noetl") {
+          toolName = "pods_list_in_namespace";
+          toolArgs = { namespace: "noetl" };
+        } else if (subject === "events") {
+          toolName = "events_list";
+          if (args[0]) toolArgs = { namespace: args[0] };
+        } else if (subject === "deployments" || subject === "deploy") {
+          toolName = "resources_list";
+          toolArgs = { apiVersion: "apps/v1", kind: "Deployment" };
+          if (args[0]) toolArgs.namespace = args[0];
+        } else if (subject === "services" || subject === "svc") {
+          toolName = "resources_list";
+          toolArgs = { apiVersion: "v1", kind: "Service" };
+          if (args[0]) toolArgs.namespace = args[0];
+        } else if (subject === "logs") {
+          const parsed = parseKubernetesArgs(args);
+          if (!parsed.name) throw new Error("usage: k8s logs <pod> [namespace] [container]");
+          toolName = "pods_log";
+          toolArgs = {
+            name: parsed.name,
+            namespace: parsed.namespace,
+            container: parsed.container,
+            tail: 120,
+          };
+        } else if (subject === "top") {
+          toolName = "pods_top";
+          toolArgs = args[0] ? { namespace: args[0], all_namespaces: false } : { all_namespaces: true };
+        } else {
+          throw new Error("usage: k8s pods [namespace] | namespaces | events [namespace] | deployments [namespace] | services [namespace] | logs <pod> [namespace] [container] | top [namespace]");
+        }
+        const result = await apiService.callKubernetesMcpTool(toolName, toolArgs);
+        append({ tone: "output", text: formatMcpToolResult(result.text) });
       } else if (verb === "playbooks" || verb === "catalog") {
         const playbooks = rest ? await apiService.searchPlaybooks(rest) : await apiService.getPlaybooks();
         append({ tone: "output", ...summarizePlaybooks(playbooks) });
