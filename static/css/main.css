@@ -108,7 +108,7 @@ html[data-noetl-theme="light"] body {
   background: var(--mc-panel);
   padding: 0;
   height: auto;
-  min-height: 44px;
+  min-height: 32px;
   margin: 10px 10px 0;
   box-shadow: none;
   border-radius: var(--mc-radius);
@@ -127,6 +127,7 @@ html[data-noetl-theme="light"] body {
   width: 100%;
   position: relative;
   gap: 0;
+  min-width: 0;
 }
 
 .logo {
@@ -146,8 +147,10 @@ html[data-noetl-theme="light"] body {
 .mc-top-line {
   background: var(--mc-bar);
   color: var(--mc-bar-text);
-  min-height: 30px;
+  min-height: 34px;
   border-bottom: 1px solid var(--mc-border-dim);
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .mc-top-line .logo {
@@ -159,7 +162,7 @@ html[data-noetl-theme="light"] body {
 .mc-menubar {
   display: flex;
   align-items: center;
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-width: 0;
   overflow-x: auto;
   padding: 2px 6px;
@@ -209,6 +212,7 @@ html[data-noetl-theme="light"] body {
 .mc-context {
   color: var(--mc-bar-text);
   padding: 0 10px;
+  margin-left: auto;
   white-space: nowrap;
   text-transform: uppercase;
   font-size: 12px;
@@ -217,12 +221,13 @@ html[data-noetl-theme="light"] body {
 .mc-command-line {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
   gap: 3px;
-  min-height: 34px;
-  padding: 4px 6px;
-  background: var(--mc-panel-deep);
-  border-bottom: 1px solid var(--mc-border-dim);
+  min-height: 28px;
+  padding: 2px 6px;
+  background: transparent;
+  border-left: 1px solid var(--mc-border-dim);
 }
 
 .mc-fkey {
@@ -230,7 +235,7 @@ html[data-noetl-theme="light"] body {
   align-items: center;
   gap: 4px;
   min-height: 24px;
-  padding: 2px 7px 3px;
+  padding: 2px 6px 3px;
   border-radius: var(--noetl-radius-sm);
   background: var(--mc-bar);
   color: var(--mc-bar-text);
@@ -293,7 +298,7 @@ html[data-noetl-theme="light"] body {
 }
 
 .theme-switch {
-  margin-left: auto;
+  margin-left: 0;
   flex-shrink: 0;
   border: 1px solid var(--mc-border-dim);
   border-radius: var(--noetl-radius-sm) !important;

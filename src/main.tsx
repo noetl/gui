@@ -253,27 +253,27 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
               </button>
             ))}
           </nav>
+          <div className="mc-command-line" aria-label="NoETL command bar">
+            <button type="button" className="mc-fkey" onClick={() => setConsoleVisible((value) => !value)}>
+              <span>F2</span>{consoleVisible ? "Hide CLI" : "Show CLI"}
+            </button>
+            <button type="button" className="mc-fkey" onClick={() => setDashboardVisible((value) => !value)}>
+              <span>F3</span>{dashboardVisible ? "Hide View" : "Show View"}
+            </button>
+            <button type="button" className="mc-fkey" onClick={() => navigate("/catalog")}>
+              <span>F4</span>Catalog
+            </button>
+            <button type="button" className="mc-fkey" onClick={() => navigate("/execution")}>
+              <span>F5</span>Execute
+            </button>
+            <button type="button" className="mc-fkey" onClick={() => onThemeChange(appTheme === "dark" ? "light" : "dark")}>
+              <span>F9</span>{appTheme === "dark" ? "White" : "Dark"}
+            </button>
+            <button type="button" className="mc-fkey mc-fkey-danger" onClick={handleLogout}>
+              <span>F10</span>Logout
+            </button>
+          </div>
           <span className="mc-context">kind:{activeRoute?.label || "workspace"}</span>
-        </div>
-        <div className="mc-command-line" aria-label="NoETL command bar">
-          <button type="button" className="mc-fkey" onClick={() => setConsoleVisible((value) => !value)}>
-            <span>F2</span>{consoleVisible ? "Hide CLI" : "Show CLI"}
-          </button>
-          <button type="button" className="mc-fkey" onClick={() => setDashboardVisible((value) => !value)}>
-            <span>F3</span>{dashboardVisible ? "Hide View" : "Show View"}
-          </button>
-          <button type="button" className="mc-fkey" onClick={() => navigate("/catalog")}>
-            <span>F4</span>Catalog
-          </button>
-          <button type="button" className="mc-fkey" onClick={() => navigate("/execution")}>
-            <span>F5</span>Execute
-          </button>
-          <button type="button" className="mc-fkey" onClick={() => onThemeChange(appTheme === "dark" ? "light" : "dark")}>
-            <span>F9</span>{appTheme === "dark" ? "White" : "Dark"}
-          </button>
-          <button type="button" className="mc-fkey mc-fkey-danger" onClick={handleLogout}>
-            <span>F10</span>Logout
-          </button>
           <Segmented<AppTheme>
             className="theme-switch"
             size="small"
