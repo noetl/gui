@@ -252,13 +252,13 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
           </nav>
           <div className="mc-command-line" aria-label="NoETL command bar">
             <button type="button" className="mc-fkey" onClick={() => setConsoleVisible((value) => !value)}>
-              {consoleVisible ? "Hide CLI" : "Show CLI"}
+              Terminal
             </button>
             <button type="button" className="mc-fkey" onClick={() => setDashboardVisible((value) => !value)}>
-              {dashboardVisible ? "Hide View" : "Show View"}
+              Dashboard
             </button>
-            <button type="button" className="mc-fkey" onClick={() => navigate("/catalog")}>
-              Catalog
+            <button type="button" className="mc-fkey" onClick={() => setConsoleVisible(true)}>
+              Help
             </button>
             <button type="button" className="mc-fkey" onClick={() => navigate("/execution")}>
               Execute
@@ -328,8 +328,8 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
       </ViewToolbarContext.Provider>
       <Footer className="mc-function-footer">
         <button type="button" onClick={() => setConsoleVisible(true)}>Help</button>
-        <button type="button" onClick={() => setConsoleVisible((value) => !value)}>CLI</button>
-        <button type="button" onClick={() => setDashboardVisible((value) => !value)}>View</button>
+        <button type="button" onClick={() => setConsoleVisible((value) => !value)}>Terminal</button>
+        <button type="button" onClick={() => setDashboardVisible((value) => !value)}>Dashboard</button>
         <button type="button" onClick={() => navigate("/catalog")}>Catalog</button>
         <button type="button" onClick={() => navigate("/execution")}>Exec</button>
         <button type="button" onClick={() => navigate("/editor")}>Edit</button>
