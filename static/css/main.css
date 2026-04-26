@@ -243,15 +243,6 @@ html[data-noetl-theme="light"] body {
   white-space: nowrap;
 }
 
-.mc-fkey span,
-.mc-function-footer button span {
-  background: var(--mc-panel-deep);
-  color: var(--mc-hotkey);
-  padding: 1px 3px;
-  border-radius: 2px;
-  font-weight: 700;
-}
-
 .mc-fkey:hover,
 .mc-fkey:focus,
 .mc-function-footer button:hover,

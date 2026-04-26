@@ -255,22 +255,22 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
           </nav>
           <div className="mc-command-line" aria-label="NoETL command bar">
             <button type="button" className="mc-fkey" onClick={() => setConsoleVisible((value) => !value)}>
-              <span>F2</span>{consoleVisible ? "Hide CLI" : "Show CLI"}
+              {consoleVisible ? "Hide CLI" : "Show CLI"}
             </button>
             <button type="button" className="mc-fkey" onClick={() => setDashboardVisible((value) => !value)}>
-              <span>F3</span>{dashboardVisible ? "Hide View" : "Show View"}
+              {dashboardVisible ? "Hide View" : "Show View"}
             </button>
             <button type="button" className="mc-fkey" onClick={() => navigate("/catalog")}>
-              <span>F4</span>Catalog
+              Catalog
             </button>
             <button type="button" className="mc-fkey" onClick={() => navigate("/execution")}>
-              <span>F5</span>Execute
+              Execute
             </button>
             <button type="button" className="mc-fkey" onClick={() => onThemeChange(appTheme === "dark" ? "light" : "dark")}>
-              <span>F9</span>{appTheme === "dark" ? "White" : "Dark"}
+              {appTheme === "dark" ? "White" : "Dark"}
             </button>
             <button type="button" className="mc-fkey mc-fkey-danger" onClick={handleLogout}>
-              <span>F10</span>Logout
+              Logout
             </button>
           </div>
           <span className="mc-context">kind:{activeRoute?.label || "workspace"}</span>
@@ -293,7 +293,7 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
             <div className="dashboard-window-bar">
               <span className="mc-panel-title">VIEW::{location.pathname || "/"}</span>
               <Button className="mc-menu-button" size="small" onClick={() => setDashboardVisible(false)}>
-                F3 hide view
+                hide view
               </Button>
             </div>
             <Routes>
@@ -322,22 +322,22 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
           <div className="dashboard-window-toggle">
             <span>view window hidden :: {location.pathname || "/"}</span>
             <Button className="mc-menu-button" size="small" onClick={() => setDashboardVisible(true)}>
-              F3 show view
+              show view
             </Button>
           </div>
         )}
       </Content>
       <Footer className="mc-function-footer">
-        <button type="button" onClick={() => setConsoleVisible(true)}><span>F1</span>Help</button>
-        <button type="button" onClick={() => setConsoleVisible((value) => !value)}><span>F2</span>CLI</button>
-        <button type="button" onClick={() => setDashboardVisible((value) => !value)}><span>F3</span>View</button>
-        <button type="button" onClick={() => navigate("/catalog")}><span>F4</span>Catalog</button>
-        <button type="button" onClick={() => navigate("/execution")}><span>F5</span>Exec</button>
-        <button type="button" onClick={() => navigate("/editor")}><span>F6</span>Edit</button>
-        <button type="button" onClick={() => navigate("/credentials")}><span>F7</span>Creds</button>
-        <button type="button" onClick={() => navigate("/users")}><span>F8</span>Users</button>
-        <button type="button" onClick={() => onThemeChange(appTheme === "dark" ? "light" : "dark")}><span>F9</span>Theme</button>
-        <button type="button" onClick={handleLogout}><span>F10</span>Quit</button>
+        <button type="button" onClick={() => setConsoleVisible(true)}>Help</button>
+        <button type="button" onClick={() => setConsoleVisible((value) => !value)}>CLI</button>
+        <button type="button" onClick={() => setDashboardVisible((value) => !value)}>View</button>
+        <button type="button" onClick={() => navigate("/catalog")}>Catalog</button>
+        <button type="button" onClick={() => navigate("/execution")}>Exec</button>
+        <button type="button" onClick={() => navigate("/editor")}>Edit</button>
+        <button type="button" onClick={() => navigate("/credentials")}>Creds</button>
+        <button type="button" onClick={() => navigate("/users")}>Users</button>
+        <button type="button" onClick={() => onThemeChange(appTheme === "dark" ? "light" : "dark")}>Theme</button>
+        <button type="button" onClick={handleLogout}>Quit</button>
       </Footer>
     </Layout>
   );
