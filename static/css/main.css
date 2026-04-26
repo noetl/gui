@@ -562,14 +562,13 @@ html[data-noetl-theme="light"] body {
 .dashboard-window-toggle {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 12px;
   border: 1px solid var(--mc-border-dim);
   background: var(--mc-panel-deep);
   color: var(--mc-text);
   margin: -8px -8px 16px;
   padding: 4px 6px;
-  text-transform: uppercase;
   border-radius: var(--noetl-radius-sm);
 }
 
@@ -586,6 +585,21 @@ html[data-noetl-theme="light"] body {
   color: var(--mc-select-text);
   padding: 1px 6px;
   border-radius: var(--noetl-radius-sm);
+  flex: 0 0 auto;
+  text-transform: uppercase;
+}
+
+.dashboard-window-actions {
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  gap: 6px;
+  min-width: 0;
+}
+
+.dashboard-window-bar > .mc-menu-button {
+  margin-left: auto;
+  flex: 0 0 auto;
 }
 
 .ant-layout,

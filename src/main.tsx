@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import type React from "react";
 import { createRoot } from "react-dom/client";
 import {
@@ -22,6 +22,7 @@ import GatewayLogin from "./components/GatewayLogin";
 import GatewayAssistant from "./components/GatewayAssistant";
 import NoetlPrompt from "./components/NoetlPrompt";
 import UserManagement from "./components/UserManagement";
+import { ViewToolbarContext } from "./components/ViewToolbarContext";
 import {
   AppstoreOutlined,
   CodeOutlined,
@@ -178,6 +179,7 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
   const [loading, setLoading] = useState(true);
   const [consoleVisible, setConsoleVisible] = useState(true);
   const [dashboardVisible, setDashboardVisible] = useState(true);
+  const [viewToolbarActions, setViewToolbarActions] = useState<React.ReactNode>(null);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -227,6 +229,14 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
     logout();
     navigate("/login", { replace: true });
   };
+
+  const clearViewToolbarActions = useCallback(() => setViewToolbarActions(null), []);
+
+  const viewToolbarValue = useMemo(() => ({
+    actions: viewToolbarActions,
+    setActions: setViewToolbarActions,
+    clearActions: clearViewToolbarActions,
+  }), [clearViewToolbarActions, viewToolbarActions]);
 
   if (loading) {
     return (
@@ -284,46 +294,49 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
         </div>
         {consoleVisible && <NoetlPrompt className="header-prompt" />}
       </Header>
-      <Content className="terminal-content">
-        {dashboardVisible ? (
-          <div className="AppRoutesContent terminal-panel dashboard-window">
-            <div className="dashboard-window-bar">
-              <span className="mc-panel-title">VIEW::{location.pathname || "/"}</span>
-              <Button className="mc-menu-button" size="small" onClick={() => setDashboardVisible(false)}>
-                hide view
+      <ViewToolbarContext.Provider value={viewToolbarValue}>
+        <Content className="terminal-content">
+          {dashboardVisible ? (
+            <div className="AppRoutesContent terminal-panel dashboard-window">
+              <div className="dashboard-window-bar">
+                <span className="mc-panel-title">VIEW::{location.pathname || "/"}</span>
+                {viewToolbarActions && <div className="dashboard-window-actions">{viewToolbarActions}</div>}
+                <Button className="mc-menu-button" size="small" onClick={() => setDashboardVisible(false)}>
+                  hide view
+                </Button>
+              </div>
+              <Routes>
+                <Route
+                  path="/"
+                  element={
+                    visibleMenuItems[0] ? (
+                      <Navigate to={visibleMenuItems[0].path} replace />
+                    ) : (
+                      <AccessDenied />
+                    )
+                  }
+                />
+                <Route path="/catalog" element={userRoles.includes("admin") ? <Catalog /> : <AccessDenied />} />
+                <Route path="/credentials" element={userRoles.includes("admin") ? <Credentials /> : <AccessDenied />} />
+                <Route path="/editor" element={userRoles.includes("admin") ? <Editor /> : <AccessDenied />} />
+                <Route path="/execution" element={userRoles.includes("admin") ? <Execution /> : <AccessDenied />} />
+                <Route path="/execution/:id" element={userRoles.includes("admin") ? <ExecutionDetail /> : <AccessDenied />} />
+                <Route path="/travel" element={<GatewayAssistant />} />
+                <Route path="/users" element={userRoles.includes("admin") ? <UserManagement /> : <AccessDenied />} />
+                {/* Catch-all route for 404 */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </div>
+          ) : (
+            <div className="dashboard-window-toggle">
+              <span>view window hidden :: {location.pathname || "/"}</span>
+              <Button className="mc-menu-button" size="small" onClick={() => setDashboardVisible(true)}>
+                show view
               </Button>
             </div>
-            <Routes>
-              <Route
-                path="/"
-                element={
-                  visibleMenuItems[0] ? (
-                    <Navigate to={visibleMenuItems[0].path} replace />
-                  ) : (
-                    <AccessDenied />
-                  )
-                }
-              />
-              <Route path="/catalog" element={userRoles.includes("admin") ? <Catalog /> : <AccessDenied />} />
-              <Route path="/credentials" element={userRoles.includes("admin") ? <Credentials /> : <AccessDenied />} />
-              <Route path="/editor" element={userRoles.includes("admin") ? <Editor /> : <AccessDenied />} />
-              <Route path="/execution" element={userRoles.includes("admin") ? <Execution /> : <AccessDenied />} />
-              <Route path="/execution/:id" element={userRoles.includes("admin") ? <ExecutionDetail /> : <AccessDenied />} />
-              <Route path="/travel" element={<GatewayAssistant />} />
-              <Route path="/users" element={userRoles.includes("admin") ? <UserManagement /> : <AccessDenied />} />
-              {/* Catch-all route for 404 */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </div>
-        ) : (
-          <div className="dashboard-window-toggle">
-            <span>view window hidden :: {location.pathname || "/"}</span>
-            <Button className="mc-menu-button" size="small" onClick={() => setDashboardVisible(true)}>
-              show view
-            </Button>
-          </div>
-        )}
-      </Content>
+          )}
+        </Content>
+      </ViewToolbarContext.Provider>
       <Footer className="mc-function-footer">
         <button type="button" onClick={() => setConsoleVisible(true)}>Help</button>
         <button type="button" onClick={() => setConsoleVisible((value) => !value)}>CLI</button>

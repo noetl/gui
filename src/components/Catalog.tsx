@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Layout,
   Row,
@@ -32,6 +32,7 @@ import { PlaybookData } from "../types";
 import "../styles/Catalog.css";
 import { useNavigate } from "react-router-dom";
 import { AxiosError } from "axios";
+import { useViewToolbar } from "./ViewToolbarContext";
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
@@ -41,6 +42,7 @@ const { TabPane } = Tabs;
 
 const Catalog: React.FC = () => {
   const navigate = useNavigate();
+  const { setActions: setViewActions, clearActions: clearViewActions } = useViewToolbar();
   const [playbooks, setPlaybooks] = useState<PlaybookData[]>([]);
   const [allPlaybooks, setAllPlaybooks] = useState<PlaybookData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -134,9 +136,9 @@ const Catalog: React.FC = () => {
     [allPlaybooks],
   );
 
-  const handleSearch = (query: string) => {
+  const handleSearch = useCallback((query: string) => {
     handleSearchInternal(query);
-  };
+  }, [handleSearchInternal]);
 
   useEffect(() => {
     fetchCatalogData();
@@ -162,11 +164,11 @@ const Catalog: React.FC = () => {
     }
   };
 
-  const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSearchInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchQuery(value);
     debounceSearch(value);
-  };
+  }, [debounceSearch]);
 
   const handleExecutePlaybook = async (catalog_id: string) => {
     try {
@@ -271,7 +273,7 @@ const Catalog: React.FC = () => {
     return false; // Prevent auto upload
   };
 
-  const handleOpenCreateModal = () => {
+  const handleOpenCreateModal = useCallback(() => {
     setCreateModalVisible(true);
     setCreatePlaybookJson("");
     setCreatePlaybookFile(null);
@@ -279,7 +281,7 @@ const Catalog: React.FC = () => {
     setCreatePlaybookAiPrompt("");
     setCreatePlaybookAiDraft("");
     setCreatePlaybookAiResult(null);
-  };
+  }, []);
 
   const handleCloseCreateModal = () => {
     setCreateModalVisible(false);
@@ -413,6 +415,35 @@ const Catalog: React.FC = () => {
     }
   };
 
+  const catalogViewActions = useMemo(() => (
+    <div className="catalog-view-toolbar">
+      <Search
+        className="catalog-toolbar-search"
+        placeholder="Search playbooks..."
+        allowClear
+        enterButton={<SearchOutlined />}
+        size="middle"
+        loading={searchLoading}
+        value={searchQuery}
+        onSearch={handleSearch}
+        onChange={handleSearchInputChange}
+        data-pw="catalog.search"
+      />
+      <Button
+        type="primary"
+        icon={<PlusOutlined />}
+        onClick={handleOpenCreateModal}
+      >
+        New Playbook
+      </Button>
+    </div>
+  ), [handleOpenCreateModal, handleSearch, handleSearchInputChange, searchLoading, searchQuery]);
+
+  useEffect(() => {
+    setViewActions(catalogViewActions);
+    return clearViewActions;
+  }, [catalogViewActions, clearViewActions, setViewActions]);
+
   if (loading) {
     return (
       <Content className="catalog-loading-content">
@@ -435,26 +466,7 @@ const Catalog: React.FC = () => {
       <Space direction="vertical" size="large" className="catalog-space-vertical">
         <div className="catalog-header">
           <Title level={2}>PLAYBOOK CATALOG</Title>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={handleOpenCreateModal}
-          >
-            New Playbook
-          </Button>
         </div>
-
-        <Search
-          placeholder="Search playbooks..."
-          allowClear
-          enterButton={<SearchOutlined />}
-          size="large"
-          loading={searchLoading}
-          value={searchQuery}
-          onSearch={handleSearch}
-          onChange={handleSearchInputChange}
-          data-pw={`catalog.search`}
-        />
 
         {/* Playbooks list */}
         <Space direction="vertical" size="middle" className="catalog-playbooks-space">
