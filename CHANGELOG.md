@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.6](https://github.com/noetl/gui/compare/v1.0.5...v1.0.6) (2026-04-26)
+
+### Bug Fixes
+
+* **ui:** release terminal workspace panes ([15aaaf2](https://github.com/noetl/gui/commit/15aaaf27bc10cd08ee7d6af644166c3c79c468c2))
+
 ## [1.0.5](https://github.com/noetl/gui/compare/v1.0.4...v1.0.5) (2026-03-17)
 
 ### Bug Fixes
