@@ -1,5 +1,5 @@
 import { resolveGatewayBaseUrl } from "./gatewayBaseUrl";
-import { readAppEnv } from "./runtimeEnv";
+import { isEnvTrue, readAppEnv } from "./runtimeEnv";
 
 export type GatewayUser = {
   email?: string;
@@ -52,6 +52,46 @@ function notifyConnection(connected: boolean): void {
 
 function getGatewayBaseUrl(): string {
   return resolveGatewayBaseUrl();
+}
+
+function isLocalOrPrivateHost(hostname: string): boolean {
+  const normalized = hostname.replace(/^\[|\]$/g, "").toLowerCase();
+  if (
+    normalized === "localhost" ||
+    normalized === "127.0.0.1" ||
+    normalized === "::1" ||
+    normalized.endsWith(".local")
+  ) {
+    return true;
+  }
+  if (/^10\./.test(normalized) || /^192\.168\./.test(normalized)) {
+    return true;
+  }
+  return /^172\.(1[6-9]|2\d|3[0-1])\./.test(normalized);
+}
+
+function readHostnameFromUrl(value: string): string | null {
+  if (!value) {
+    return null;
+  }
+  try {
+    return new URL(value).hostname;
+  } catch {
+    return null;
+  }
+}
+
+export function isSkipAuthAllowed(): boolean {
+  if (!isEnvTrue("VITE_ALLOW_SKIP_AUTH")) {
+    return false;
+  }
+
+  const browserHostAllowed = isLocalOrPrivateHost(window.location.hostname);
+  const apiHostname = readHostnameFromUrl(readAppEnv("VITE_API_BASE_URL")) ||
+    readHostnameFromUrl(resolveGatewayBaseUrl());
+  const apiHostAllowed = apiHostname ? isLocalOrPrivateHost(apiHostname) : true;
+
+  return browserHostAllowed && apiHostAllowed;
 }
 
 function getAuth0RedirectUri(): string {
@@ -195,6 +235,9 @@ export function isDevSkipAuth(): boolean {
 }
 
 export function loginAsDevUser(): void {
+  if (!isSkipAuthAllowed()) {
+    throw new Error("Skip authentication is only available for local development hosts.");
+  }
   setSessionToken(DEV_SKIP_AUTH_TOKEN);
   setUserInfo({
     email: "dev@local",

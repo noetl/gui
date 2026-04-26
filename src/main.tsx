@@ -33,8 +33,7 @@ import {
 } from "@ant-design/icons";
 
 // Import auth functions
-import { isAuthenticated, getUserInfo, validateSession, logout, isDevSkipAuth, type GatewayUser } from "./services/gatewayAuth";
-import { isEnvTrue } from "./services/runtimeEnv";
+import { isAuthenticated, getUserInfo, validateSession, logout, isDevSkipAuth, isSkipAuthAllowed, type GatewayUser } from "./services/gatewayAuth";
 
 // Import styles
 import "antd/dist/reset.css";
@@ -175,7 +174,7 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
         return;
       }
 
-      if (isEnvTrue("VITE_ALLOW_SKIP_AUTH") && isDevSkipAuth()) {
+      if (isSkipAuthAllowed() && isDevSkipAuth()) {
         setUser(getUserInfo());
         setLoading(false);
         return;
@@ -210,6 +209,20 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
 
   const primaryMenuItems = useMemo(() => {
     return visibleMenuItems.filter((item) => item.key !== "/users");
+  }, [visibleMenuItems]);
+
+  const footerMenuItems = useMemo(() => {
+    const footerLabels: Record<string, string> = {
+      "/catalog": "Catalog",
+      "/execution": "Runs",
+      "/editor": "Edit",
+      "/credentials": "Creds",
+      "/travel": "Travel",
+      "/users": "Users",
+    };
+    return visibleMenuItems
+      .filter((item) => footerLabels[item.path])
+      .map((item) => ({ path: item.path, label: footerLabels[item.path] }));
   }, [visibleMenuItems]);
 
   const activeRoute = useMemo(() => {
@@ -339,11 +352,11 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
         <button type="button" onClick={() => setConsoleVisible(true)}>Help</button>
         <button type="button" onClick={() => setConsoleVisible((value) => !value)}>Terminal</button>
         <button type="button" onClick={() => setDashboardVisible((value) => !value)}>Dashboard</button>
-        <button type="button" onClick={() => navigate("/catalog")}>Catalog</button>
-        <button type="button" onClick={() => navigate("/execution")}>Runs</button>
-        <button type="button" onClick={() => navigate("/editor")}>Edit</button>
-        <button type="button" onClick={() => navigate("/credentials")}>Creds</button>
-        <button type="button" onClick={() => navigate("/users")}>Users</button>
+        {footerMenuItems.map((item) => (
+          <button key={item.path} type="button" onClick={() => navigate(item.path)}>
+            {item.label}
+          </button>
+        ))}
         <button type="button" onClick={() => onThemeChange(appTheme === "dark" ? "light" : "dark")}>Theme</button>
         <button type="button" onClick={handleLogout}>Quit</button>
       </Footer>

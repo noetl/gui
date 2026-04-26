@@ -57,7 +57,7 @@ Supported runtime variables:
 
 - `VITE_API_MODE` (`gateway` or `direct`)
 - `VITE_API_BASE_URL` (for direct mode)
-- `VITE_ALLOW_SKIP_AUTH` (`true`/`false`)
+- `VITE_ALLOW_SKIP_AUTH` (`true`/`false`, limited to local/private browser and API hosts)
 - `VITE_GATEWAY_URL`
 - `VITE_AUTH0_DOMAIN`
 - `VITE_AUTH0_CLIENT_ID`

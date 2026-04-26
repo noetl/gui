@@ -21,7 +21,9 @@ export function resolveApiMode(): "gateway" | "direct" {
 }
 
 export function resolveGatewayBaseUrl(): string {
-  const envValue = readAppEnv("VITE_API_BASE_URL") || readAppEnv("VITE_GATEWAY_URL");
+  const envValue = resolveApiMode() === "direct"
+    ? readAppEnv("VITE_API_BASE_URL")
+    : readAppEnv("VITE_GATEWAY_URL");
   if (envValue && envValue.trim().length > 0) {
     return trimTrailingSlash(envValue.trim());
   }
