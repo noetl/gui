@@ -57,6 +57,7 @@ const TERMINAL_HEIGHT_STORAGE_KEY = "noetl-terminal-pane-height";
 const MIN_TERMINAL_HEIGHT = 150;
 const MIN_DASHBOARD_HEIGHT = 180;
 const DEFAULT_TERMINAL_HEIGHT = 340;
+const WORKSPACE_FIXED_VERTICAL_GAP = 20;
 
 function readStoredTheme(): AppTheme {
   if (typeof window === "undefined") return "dark";
@@ -66,7 +67,7 @@ function readStoredTheme(): AppTheme {
 function readStoredTerminalHeight(): number {
   if (typeof window === "undefined") return DEFAULT_TERMINAL_HEIGHT;
   const stored = Number(window.localStorage.getItem(TERMINAL_HEIGHT_STORAGE_KEY));
-  return Number.isFinite(stored) && stored > 0 ? stored : DEFAULT_TERMINAL_HEIGHT;
+  return Number.isFinite(stored) && stored > 0 ? Math.max(MIN_TERMINAL_HEIGHT, stored) : DEFAULT_TERMINAL_HEIGHT;
 }
 
 const appThemeTokens: Record<AppTheme, {
@@ -215,6 +216,7 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
   const [footerHeight, setFooterHeight] = useState(28);
   const [viewToolbarActions, setViewToolbarActions] = useState<React.ReactNode>(null);
   const shellRef = useRef<HTMLDivElement>(null);
+  const resizerRef = useRef<HTMLDivElement>(null);
   const footerRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -360,12 +362,18 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
   const getMaxTerminalHeight = useCallback(() => {
     if (typeof window === "undefined") return DEFAULT_TERMINAL_HEIGHT;
     const shellTop = shellRef.current?.getBoundingClientRect().top ?? 0;
-    const footerHeight = footerRef.current?.getBoundingClientRect().height ?? 28;
+    const measuredFooterHeight = footerRef.current?.getBoundingClientRect().height ?? footerHeight;
+    const resizerHeight = resizerRef.current?.getBoundingClientRect().height ?? 0;
     return Math.max(
       MIN_TERMINAL_HEIGHT,
-      window.innerHeight - shellTop - footerHeight - MIN_DASHBOARD_HEIGHT,
+      window.innerHeight
+        - shellTop
+        - measuredFooterHeight
+        - resizerHeight
+        - WORKSPACE_FIXED_VERTICAL_GAP
+        - MIN_DASHBOARD_HEIGHT,
     );
-  }, []);
+  }, [footerHeight]);
 
   const clampTerminalHeight = useCallback((height: number) => {
     return Math.round(Math.min(getMaxTerminalHeight(), Math.max(MIN_TERMINAL_HEIGHT, height)));
@@ -580,6 +588,7 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
       </Header>
       {canResizePanes && (
         <div
+          ref={resizerRef}
           aria-label="Resize terminal and dashboard panes"
           aria-orientation="horizontal"
           aria-valuemax={getMaxTerminalHeight()}
@@ -647,9 +656,19 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
         </Content>
       </ViewToolbarContext.Provider>
       <Footer ref={footerRef} className="mc-function-footer">
-        <button type="button" onClick={() => setConsoleVisible(true)}>Help</button>
-        <button type="button" onClick={() => setConsoleVisible((value) => !value)}>Terminal</button>
-        <button type="button" onClick={() => setDashboardVisible((value) => !value)}>Dashboard</button>
+        <button
+          type="button"
+          onClick={() => {
+            setConsoleVisible(true);
+            if (paneMode === "dashboard") {
+              setPaneMode("split");
+            }
+          }}
+        >
+          Help
+        </button>
+        <button type="button" onClick={toggleTerminalPane}>Terminal</button>
+        <button type="button" onClick={toggleDashboardPane}>Dashboard</button>
         {footerMenuItems.map((item) => (
           <button key={item.path} type="button" onClick={() => navigate(item.path)}>
             {item.label}
