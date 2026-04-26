@@ -426,10 +426,6 @@ const Credentials: React.FC = () => {
     return (
         <Content className="credentials-main-content">
             <Space direction="vertical" size="large" className="credentials-space-vertical">
-                <div className="credentials-header">
-                    <Title level={2}>🔐 Credentials</Title>
-                </div>
-
                 {/* Credentials list */}
                 <Space direction="vertical" size="middle" className="credentials-credentials-space">
                     {credentials.map((credential) => (
