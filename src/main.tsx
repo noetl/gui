@@ -208,6 +208,10 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
     return ALL_MENU_ITEMS.filter((item) => hasAccess(item, userRoles));
   }, [userRoles]);
 
+  const primaryMenuItems = useMemo(() => {
+    return visibleMenuItems.filter((item) => item.key !== "/users");
+  }, [visibleMenuItems]);
+
   const activeRoute = useMemo(() => {
     return visibleMenuItems.find((item) => location.pathname === item.path || location.pathname.startsWith(`${item.path}/`));
   }, [location.pathname, visibleMenuItems]);
@@ -239,7 +243,7 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
         <div className="header-inner mc-top-line">
           <div className="logo">NOETL://LOCAL</div>
           <nav className="mc-menubar" aria-label="NoETL workspace menu">
-            {visibleMenuItems.map((item) => (
+            {primaryMenuItems.map((item) => (
               <button
                 key={item.key}
                 type="button"
@@ -260,6 +264,11 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
             <button type="button" className="mc-fkey" onClick={() => navigate("/execution")}>
               Runs
             </button>
+            {userRoles.includes("admin") && (
+              <button type="button" className="mc-fkey" onClick={() => navigate("/users")}>
+                Users
+              </button>
+            )}
             <button type="button" className="mc-fkey" onClick={() => setConsoleVisible(true)}>
               Help
             </button>
