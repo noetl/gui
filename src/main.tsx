@@ -297,7 +297,7 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
       <ViewToolbarContext.Provider value={viewToolbarValue}>
         <Content className="terminal-content">
           {dashboardVisible ? (
-            <div className="AppRoutesContent terminal-panel dashboard-window">
+            <>
               <div className="dashboard-window-bar">
                 <span className="mc-panel-title">VIEW::{location.pathname || "/"}</span>
                 {viewToolbarActions && <div className="dashboard-window-actions">{viewToolbarActions}</div>}
@@ -305,28 +305,30 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
                   hide view
                 </Button>
               </div>
-              <Routes>
-                <Route
-                  path="/"
-                  element={
-                    visibleMenuItems[0] ? (
-                      <Navigate to={visibleMenuItems[0].path} replace />
-                    ) : (
-                      <AccessDenied />
-                    )
-                  }
-                />
-                <Route path="/catalog" element={userRoles.includes("admin") ? <Catalog /> : <AccessDenied />} />
-                <Route path="/credentials" element={userRoles.includes("admin") ? <Credentials /> : <AccessDenied />} />
-                <Route path="/editor" element={userRoles.includes("admin") ? <Editor /> : <AccessDenied />} />
-                <Route path="/execution" element={userRoles.includes("admin") ? <Execution /> : <AccessDenied />} />
-                <Route path="/execution/:id" element={userRoles.includes("admin") ? <ExecutionDetail /> : <AccessDenied />} />
-                <Route path="/travel" element={<GatewayAssistant />} />
-                <Route path="/users" element={userRoles.includes("admin") ? <UserManagement /> : <AccessDenied />} />
-                {/* Catch-all route for 404 */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </div>
+              <div className="AppRoutesContent terminal-panel dashboard-window">
+                <Routes>
+                  <Route
+                    path="/"
+                    element={
+                      visibleMenuItems[0] ? (
+                        <Navigate to={visibleMenuItems[0].path} replace />
+                      ) : (
+                        <AccessDenied />
+                      )
+                    }
+                  />
+                  <Route path="/catalog" element={userRoles.includes("admin") ? <Catalog /> : <AccessDenied />} />
+                  <Route path="/credentials" element={userRoles.includes("admin") ? <Credentials /> : <AccessDenied />} />
+                  <Route path="/editor" element={userRoles.includes("admin") ? <Editor /> : <AccessDenied />} />
+                  <Route path="/execution" element={userRoles.includes("admin") ? <Execution /> : <AccessDenied />} />
+                  <Route path="/execution/:id" element={userRoles.includes("admin") ? <ExecutionDetail /> : <AccessDenied />} />
+                  <Route path="/travel" element={<GatewayAssistant />} />
+                  <Route path="/users" element={userRoles.includes("admin") ? <UserManagement /> : <AccessDenied />} />
+                  {/* Catch-all route for 404 */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </div>
+            </>
           ) : (
             <div className="dashboard-window-toggle">
               <span>view window hidden :: {location.pathname || "/"}</span>

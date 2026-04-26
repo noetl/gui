@@ -464,10 +464,6 @@ const Catalog: React.FC = () => {
   return (
     <Content className="catalog-main-content">
       <Space direction="vertical" size="large" className="catalog-space-vertical">
-        <div className="catalog-header">
-          <Title level={2}>PLAYBOOK CATALOG</Title>
-        </div>
-
         {/* Playbooks list */}
         <Space direction="vertical" size="middle" className="catalog-playbooks-space">
           {playbooks.map((playbook) => (
