@@ -28,7 +28,6 @@ import {
   DatabaseOutlined,
   EyeOutlined,
   KeyOutlined,
-  LogoutOutlined,
   TeamOutlined,
 } from "@ant-design/icons";
 
@@ -220,6 +219,10 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
     return ALL_MENU_ITEMS.filter((item) => hasAccess(item, userRoles));
   }, [userRoles]);
 
+  const activeRoute = useMemo(() => {
+    return visibleMenuItems.find((item) => location.pathname === item.path || location.pathname.startsWith(`${item.path}/`));
+  }, [location.pathname, visibleMenuItems]);
+
   const handleLogout = () => {
     logout();
     navigate("/login", { replace: true });
@@ -236,17 +239,41 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
   return (
     <Layout className={`app terminal-app theme-${appTheme}`} style={{ minHeight: "100vh" }}>
       <Header className={`app-header console-header ${consoleVisible ? "" : "console-header-collapsed"}`}>
-        <div className="header-inner console-header-toolbar">
+        <div className="header-inner mc-top-line">
           <div className="logo">NOETL://LOCAL</div>
-          <Button className="mc-menu-button" size="small" onClick={() => setConsoleVisible((value) => !value)}>
-            {consoleVisible ? "hide cli" : "show cli"}
-          </Button>
-          <Button className="mc-menu-button" size="small" onClick={() => setDashboardVisible((value) => !value)}>
-            {dashboardVisible ? "hide view" : "show view"}
-          </Button>
-          <Button className="mc-menu-button" size="small" icon={<LogoutOutlined />} onClick={handleLogout}>
-            logout
-          </Button>
+          <nav className="mc-menubar" aria-label="NoETL workspace menu">
+            {visibleMenuItems.map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                className={`mc-menu-item ${activeRoute?.key === item.key ? "active" : ""}`}
+                onClick={() => navigate(item.path)}
+              >
+                <span className="mc-menu-hotkey">{item.label.slice(0, 1)}</span>{item.label.slice(1)}
+              </button>
+            ))}
+          </nav>
+          <span className="mc-context">kind:{activeRoute?.label || "workspace"}</span>
+        </div>
+        <div className="mc-command-line" aria-label="NoETL command bar">
+          <button type="button" className="mc-fkey" onClick={() => setConsoleVisible((value) => !value)}>
+            <span>F2</span>{consoleVisible ? "Hide CLI" : "Show CLI"}
+          </button>
+          <button type="button" className="mc-fkey" onClick={() => setDashboardVisible((value) => !value)}>
+            <span>F3</span>{dashboardVisible ? "Hide View" : "Show View"}
+          </button>
+          <button type="button" className="mc-fkey" onClick={() => navigate("/catalog")}>
+            <span>F4</span>Catalog
+          </button>
+          <button type="button" className="mc-fkey" onClick={() => navigate("/execution")}>
+            <span>F5</span>Execute
+          </button>
+          <button type="button" className="mc-fkey" onClick={() => onThemeChange(appTheme === "dark" ? "light" : "dark")}>
+            <span>F9</span>{appTheme === "dark" ? "White" : "Dark"}
+          </button>
+          <button type="button" className="mc-fkey mc-fkey-danger" onClick={handleLogout}>
+            <span>F10</span>Logout
+          </button>
           <Segmented<AppTheme>
             className="theme-switch"
             size="small"
@@ -264,9 +291,9 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
         {dashboardVisible ? (
           <div className="AppRoutesContent terminal-panel dashboard-window">
             <div className="dashboard-window-bar">
-              <span>view::{location.pathname || "/"}</span>
+              <span className="mc-panel-title">VIEW::{location.pathname || "/"}</span>
               <Button className="mc-menu-button" size="small" onClick={() => setDashboardVisible(false)}>
-                hide view
+                F3 hide view
               </Button>
             </div>
             <Routes>
@@ -295,19 +322,22 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
           <div className="dashboard-window-toggle">
             <span>view window hidden :: {location.pathname || "/"}</span>
             <Button className="mc-menu-button" size="small" onClick={() => setDashboardVisible(true)}>
-              show view
+              F3 show view
             </Button>
           </div>
         )}
       </Content>
-      <Footer
-        style={{
-          textAlign: "center",
-          background: "transparent",
-          fontSize: "14px",
-        }}
-      >
-        [ noetl console :: 2026 ]
+      <Footer className="mc-function-footer">
+        <button type="button" onClick={() => setConsoleVisible(true)}><span>F1</span>Help</button>
+        <button type="button" onClick={() => setConsoleVisible((value) => !value)}><span>F2</span>CLI</button>
+        <button type="button" onClick={() => setDashboardVisible((value) => !value)}><span>F3</span>View</button>
+        <button type="button" onClick={() => navigate("/catalog")}><span>F4</span>Catalog</button>
+        <button type="button" onClick={() => navigate("/execution")}><span>F5</span>Exec</button>
+        <button type="button" onClick={() => navigate("/editor")}><span>F6</span>Edit</button>
+        <button type="button" onClick={() => navigate("/credentials")}><span>F7</span>Creds</button>
+        <button type="button" onClick={() => navigate("/users")}><span>F8</span>Users</button>
+        <button type="button" onClick={() => onThemeChange(appTheme === "dark" ? "light" : "dark")}><span>F9</span>Theme</button>
+        <button type="button" onClick={handleLogout}><span>F10</span>Quit</button>
       </Footer>
     </Layout>
   );
