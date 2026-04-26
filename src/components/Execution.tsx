@@ -188,10 +188,10 @@ const Execution: React.FC = () => {
       filtered = filtered.filter((exec) => statusFilter.includes(exec.status));
     }
 
-    // Filter by playbook name
+    // Filter by playbook/version key
     if (playbookFilter) {
       filtered = filtered.filter((exec) =>
-        exec.path.toLowerCase().includes(playbookFilter.toLowerCase())
+        `${exec.path}:${exec.version}`.toLowerCase() === playbookFilter.toLowerCase()
       );
     }
 

@@ -87,11 +87,15 @@ export function isSkipAuthAllowed(): boolean {
   }
 
   const browserHostAllowed = isLocalOrPrivateHost(window.location.hostname);
-  const apiHostname = readHostnameFromUrl(readAppEnv("VITE_API_BASE_URL")) ||
-    readHostnameFromUrl(resolveGatewayBaseUrl());
-  const apiHostAllowed = apiHostname ? isLocalOrPrivateHost(apiHostname) : true;
+  const configuredApiBase = readAppEnv("VITE_API_BASE_URL");
+  const apiHostname = configuredApiBase
+    ? readHostnameFromUrl(configuredApiBase)
+    : readHostnameFromUrl(resolveGatewayBaseUrl());
+  if (!apiHostname) {
+    return false;
+  }
 
-  return browserHostAllowed && apiHostAllowed;
+  return browserHostAllowed && isLocalOrPrivateHost(apiHostname);
 }
 
 function getAuth0RedirectUri(): string {

@@ -34,6 +34,7 @@ import {
 
 // Import auth functions
 import { isAuthenticated, getUserInfo, validateSession, logout, isDevSkipAuth, isSkipAuthAllowed, type GatewayUser } from "./services/gatewayAuth";
+import { apiService } from "./services/api";
 
 // Import styles
 import "antd/dist/reset.css";
@@ -242,6 +243,9 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
     clearActions: clearViewToolbarActions,
   }), [clearViewToolbarActions, viewToolbarActions]);
 
+  const runtimeContext = useMemo(() => apiService.getRuntimeContext(), []);
+  const runtimeLabel = runtimeContext.displayName.toUpperCase();
+
   if (loading) {
     return (
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -254,7 +258,7 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
     <Layout className={`app terminal-app theme-${appTheme}`} style={{ minHeight: "100vh" }}>
       <Header className={`app-header console-header ${consoleVisible ? "" : "console-header-collapsed"}`}>
         <div className="header-inner mc-top-line">
-          <div className="logo">NOETL://LOCAL</div>
+          <div className="logo">NOETL://{runtimeLabel}</div>
           <nav className="mc-menubar" aria-label="NoETL workspace menu">
             {primaryMenuItems.map((item) => (
               <button

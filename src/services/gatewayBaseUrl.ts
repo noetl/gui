@@ -21,7 +21,8 @@ export function resolveApiMode(): "gateway" | "direct" {
 }
 
 export function resolveGatewayBaseUrl(): string {
-  const envValue = resolveApiMode() === "direct"
+  const mode = resolveApiMode();
+  const envValue = mode === "direct"
     ? readAppEnv("VITE_API_BASE_URL")
     : readAppEnv("VITE_GATEWAY_URL");
   if (envValue && envValue.trim().length > 0) {
@@ -31,7 +32,11 @@ export function resolveGatewayBaseUrl(): string {
   const { hostname, protocol, origin } = window.location;
 
   if (isLocalHost(hostname)) {
-    return resolveApiMode() === "direct" ? "http://localhost:8082" : "http://localhost:8090";
+    return mode === "direct" ? "http://localhost:8082" : "http://localhost:8090";
+  }
+
+  if (mode === "direct") {
+    return trimTrailingSlash(origin);
   }
 
   const inferredGatewayHost = inferGatewayHostname(hostname);
