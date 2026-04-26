@@ -212,6 +212,7 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
   const [dashboardVisible, setDashboardVisible] = useState(true);
   const [paneMode, setPaneMode] = useState<PaneMode>("split");
   const [terminalHeight, setTerminalHeight] = useState(readStoredTerminalHeight);
+  const [footerHeight, setFooterHeight] = useState(28);
   const [viewToolbarActions, setViewToolbarActions] = useState<React.ReactNode>(null);
   const shellRef = useRef<HTMLDivElement>(null);
   const footerRef = useRef<HTMLElement>(null);
@@ -290,6 +291,24 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
   const canResizePanes = terminalPaneVisible && dashboardPaneVisible;
   const terminalFullHeight = terminalPaneVisible && !dashboardPaneVisible;
   const dashboardFullHeight = dashboardPaneVisible && !terminalPaneVisible;
+
+  useEffect(() => {
+    const footer = footerRef.current;
+    if (!footer) return;
+
+    const updateFooterHeight = () => {
+      setFooterHeight(Math.ceil(footer.getBoundingClientRect().height));
+    };
+
+    updateFooterHeight();
+    const observer = new ResizeObserver(updateFooterHeight);
+    observer.observe(footer);
+    window.addEventListener("resize", updateFooterHeight);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updateFooterHeight);
+    };
+  }, []);
 
   const restoreSplit = useCallback(() => {
     setConsoleVisible(true);
@@ -433,12 +452,20 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
   const runtimeContext = useMemo(() => apiService.getRuntimeContext(), []);
   const runtimeLabel = runtimeContext.displayName.toUpperCase();
   const terminalHeaderStyle = useMemo<React.CSSProperties | undefined>(() => {
+    if (terminalFullHeight) {
+      return {
+        flex: "1 1 0",
+        height: 0,
+        maxHeight: "none",
+        minHeight: 0,
+      };
+    }
     if (!canResizePanes) return undefined;
     return {
       flex: `0 0 ${terminalHeight}px`,
       height: terminalHeight,
     };
-  }, [canResizePanes, terminalHeight]);
+  }, [canResizePanes, terminalFullHeight, terminalHeight]);
 
   if (loading) {
     return (
@@ -449,7 +476,11 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
   }
 
   return (
-    <Layout ref={shellRef} className={`app terminal-app theme-${appTheme}`} style={{ minHeight: "100vh" }}>
+    <Layout
+      ref={shellRef}
+      className={`app terminal-app theme-${appTheme}`}
+      style={{ "--mc-footer-space": `${footerHeight}px`, minHeight: "100vh" } as React.CSSProperties}
+    >
       <Header
         className={[
           "app-header",
