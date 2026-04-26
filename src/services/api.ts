@@ -303,14 +303,23 @@ class APIService {
     return trimTrailingSlash(url);
   }
 
-  private parseMcpEnvelope(raw: unknown): any {
+  private getClientVersion(): string {
+    return readAppEnv("VITE_APP_VERSION", "0.0.0");
+  }
+
+  private parseMcpEnvelope(raw: unknown, context: string): any {
     if (typeof raw !== "string") return raw;
     const dataLines = raw
       .split(/\r?\n/)
       .filter((line) => line.startsWith("data:"))
       .map((line) => line.replace(/^data:\s?/, ""));
     const payload = dataLines.length > 0 ? dataLines.join("\n") : raw;
-    return JSON.parse(payload);
+    try {
+      return JSON.parse(payload);
+    } catch (error) {
+      const preview = payload.replace(/\s+/g, " ").slice(0, 360);
+      throw new Error(`Invalid MCP response for ${context}: ${preview || String(error)}`);
+    }
   }
 
   private nextMcpRequestId(): number {
@@ -339,7 +348,7 @@ class APIService {
           capabilities: {},
           clientInfo: {
             name: "noetl-gui",
-            version: "0.0.0",
+            version: this.getClientVersion(),
           },
         },
       },
@@ -352,7 +361,7 @@ class APIService {
         },
       },
     );
-    const envelope = this.parseMcpEnvelope(response.data);
+    const envelope = this.parseMcpEnvelope(response.data, `initialize ${endpoint}`);
     if (envelope?.error) throw new Error(envelope.error.message || "MCP initialize failed");
     const sessionId = response.headers["mcp-session-id"];
     if (!sessionId) throw new Error("MCP server did not return a session id");
@@ -379,7 +388,7 @@ class APIService {
         },
       },
     );
-    const envelope = this.parseMcpEnvelope(response.data);
+    const envelope = this.parseMcpEnvelope(response.data, `${method} ${endpoint}`);
     if (envelope?.error) throw new Error(envelope.error.message || `MCP request failed: ${method}`);
     return envelope?.result;
   }

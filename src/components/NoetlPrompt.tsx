@@ -267,6 +267,7 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
             "stop <execution_id>             stop a running execution",
             "mcp status|tools                inspect configured MCP servers",
             "k8s pods|namespaces|events      query Kubernetes through MCP",
+            "k8s deploy|svc|logs|top|noetl   inspect workloads, logs, usage",
             "clear                           clear prompt history",
           ].join("\n"),
           actions: [
