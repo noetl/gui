@@ -19,6 +19,17 @@ const DEV_SKIP_AUTH_TOKEN = "dev-skip-auth";
 
 const trimTrailingSlash = (value: string): string => value.replace(/\/+$/, "");
 
+function compactJsonForService(value: unknown, maxLength = 1000): string {
+  if (value === undefined || value === null || value === "") return "-";
+  if (typeof value === "string") return value.length > maxLength ? `${value.slice(0, maxLength - 3)}...` : value;
+  try {
+    const serialized = JSON.stringify(value);
+    return serialized.length > maxLength ? `${serialized.slice(0, maxLength - 3)}...` : serialized;
+  } catch {
+    return String(value);
+  }
+}
+
 const getApiBaseUrl = () => {
   if (readAppEnv("VITE_API_MODE") === "direct") {
     return `${trimTrailingSlash(resolveGatewayBaseUrl())}/api`;
@@ -33,6 +44,23 @@ export interface ApiRuntimeContext {
   apiBaseUrl: string;
   displayName: string;
   allowSkipAuth: boolean;
+}
+
+export interface McpRuntimeContext {
+  name: string;
+  url: string;
+  configured: boolean;
+}
+
+export interface McpToolInfo {
+  name: string;
+  title?: string;
+  description?: string;
+}
+
+export interface McpToolCallResult {
+  text: string;
+  raw: unknown;
 }
 
 const apiClient = axios.create({
@@ -141,6 +169,8 @@ apiClient.interceptors.response.use(
 // }
 
 class APIService {
+  private mcpRequestId = 1;
+
   getRuntimeContext(): ApiRuntimeContext {
     const mode = readAppEnv("VITE_API_MODE") === "direct" ? "direct" : "gateway";
     const allowSkipAuth = isSkipAuthAllowed();
@@ -166,6 +196,15 @@ class APIService {
       apiBaseUrl,
       displayName,
       allowSkipAuth,
+    };
+  }
+
+  getKubernetesMcpContext(): McpRuntimeContext {
+    const url = readAppEnv("VITE_MCP_KUBERNETES_URL");
+    return {
+      name: "kubernetes",
+      url,
+      configured: url.trim().length > 0,
     };
   }
 
@@ -258,6 +297,138 @@ class APIService {
       body.resource_kind = "playbook";
     }
     return body;
+  }
+
+  private normalizeMcpEndpoint(url: string): string {
+    return trimTrailingSlash(url);
+  }
+
+  private parseMcpEnvelope(raw: unknown): any {
+    if (typeof raw !== "string") return raw;
+    const dataLines = raw
+      .split(/\r?\n/)
+      .filter((line) => line.startsWith("data:"))
+      .map((line) => line.replace(/^data:\s?/, ""));
+    const payload = dataLines.length > 0 ? dataLines.join("\n") : raw;
+    return JSON.parse(payload);
+  }
+
+  private nextMcpRequestId(): number {
+    this.mcpRequestId += 1;
+    return this.mcpRequestId;
+  }
+
+  private extractMcpText(result: any): string {
+    const content = Array.isArray(result?.content) ? result.content : [];
+    const textParts = content
+      .map((item: any) => item?.type === "text" ? String(item.text || "") : "")
+      .filter((value: string) => value.length > 0);
+    if (textParts.length > 0) return textParts.join("\n");
+    return compactJsonForService(result, 4000);
+  }
+
+  private async createMcpSession(endpoint: string): Promise<string> {
+    const response = await axios.post(
+      endpoint,
+      {
+        jsonrpc: "2.0",
+        id: this.nextMcpRequestId(),
+        method: "initialize",
+        params: {
+          protocolVersion: "2025-03-26",
+          capabilities: {},
+          clientInfo: {
+            name: "noetl-gui",
+            version: "0.0.0",
+          },
+        },
+      },
+      {
+        timeout: 20 * 1000,
+        responseType: "text",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json, text/event-stream",
+        },
+      },
+    );
+    const envelope = this.parseMcpEnvelope(response.data);
+    if (envelope?.error) throw new Error(envelope.error.message || "MCP initialize failed");
+    const sessionId = response.headers["mcp-session-id"];
+    if (!sessionId) throw new Error("MCP server did not return a session id");
+    return String(sessionId);
+  }
+
+  private async sendMcpRequest(endpoint: string, method: string, params: Record<string, unknown> = {}): Promise<any> {
+    const sessionId = await this.createMcpSession(endpoint);
+    const response = await axios.post(
+      endpoint,
+      {
+        jsonrpc: "2.0",
+        id: this.nextMcpRequestId(),
+        method,
+        params,
+      },
+      {
+        timeout: 60 * 1000,
+        responseType: "text",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json, text/event-stream",
+          "Mcp-Session-Id": sessionId,
+        },
+      },
+    );
+    const envelope = this.parseMcpEnvelope(response.data);
+    if (envelope?.error) throw new Error(envelope.error.message || `MCP request failed: ${method}`);
+    return envelope?.result;
+  }
+
+  async getKubernetesMcpHealth(): Promise<{ ok: boolean; url: string; message: string }> {
+    const context = this.getKubernetesMcpContext();
+    if (!context.configured) {
+      return { ok: false, url: "", message: "kubernetes MCP endpoint is not configured" };
+    }
+    const endpoint = this.normalizeMcpEndpoint(context.url);
+    const healthUrl = `${endpoint}/healthz`;
+    try {
+      await axios.get(healthUrl, { timeout: 10 * 1000 });
+      return { ok: true, url: endpoint, message: "healthy" };
+    } catch {
+      try {
+        await this.listKubernetesMcpTools();
+        return { ok: true, url: endpoint, message: "responding" };
+      } catch (error: any) {
+        return { ok: false, url: endpoint, message: error?.message || "unavailable" };
+      }
+    }
+  }
+
+  async listKubernetesMcpTools(): Promise<McpToolInfo[]> {
+    const context = this.getKubernetesMcpContext();
+    if (!context.configured) throw new Error("kubernetes MCP endpoint is not configured");
+    const endpoint = this.normalizeMcpEndpoint(context.url);
+    const result = await this.sendMcpRequest(endpoint, "tools/list");
+    const tools = Array.isArray(result?.tools) ? result.tools : [];
+    return tools.map((tool: any) => ({
+      name: this.asString(tool.name),
+      title: tool.title == null ? undefined : String(tool.title),
+      description: tool.description == null ? undefined : String(tool.description),
+    }));
+  }
+
+  async callKubernetesMcpTool(name: string, args: Record<string, unknown> = {}): Promise<McpToolCallResult> {
+    const context = this.getKubernetesMcpContext();
+    if (!context.configured) throw new Error("kubernetes MCP endpoint is not configured");
+    const endpoint = this.normalizeMcpEndpoint(context.url);
+    const result = await this.sendMcpRequest(endpoint, "tools/call", {
+      name,
+      arguments: args,
+    });
+    return {
+      text: this.extractMcpText(result),
+      raw: result,
+    };
   }
 
   async getHealth(): Promise<ServerStatus> {
