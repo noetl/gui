@@ -162,6 +162,12 @@ html[data-noetl-theme="light"] body {
   color: var(--mc-text);
 }
 
+.terminal-app .ant-layout-header,
+.terminal-app .ant-layout-content,
+.terminal-app .ant-layout-footer {
+  line-height: normal;
+}
+
 .app-header {
   position: relative;
   flex: 0 0 auto;
@@ -389,7 +395,7 @@ html[data-noetl-theme="light"] body {
 }
 
 .console-header-full {
-  flex: 1 1 auto;
+  flex: 1 1 0;
   min-height: 240px;
   height: auto;
 }

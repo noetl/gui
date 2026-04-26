@@ -140,7 +140,7 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const inputRef = useRef<InputRef>(null);
-  const historyEndRef = useRef<HTMLDivElement>(null);
+  const historyRef = useRef<HTMLDivElement>(null);
   const [command, setCommand] = useState("");
   const [busy, setBusy] = useState(false);
   const [history, setHistory] = useState<PromptEntry[]>([
@@ -161,7 +161,10 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
-      historyEndRef.current?.scrollIntoView({ block: "end" });
+      const historyEl = historyRef.current;
+      if (historyEl) {
+        historyEl.scrollTop = historyEl.scrollHeight;
+      }
     });
     return () => window.cancelAnimationFrame(frame);
   }, [history]);
@@ -351,7 +354,7 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
 
   return (
     <section className={`noetl-prompt${className ? ` ${className}` : ""}`} aria-label="NoETL command prompt">
-      <div className="noetl-prompt-history">
+      <div ref={historyRef} className="noetl-prompt-history">
         {history.map((entry) => (
           <div key={entry.id} className={`noetl-prompt-line ${entry.tone}`}>
             {entry.prompt && <span className="noetl-prompt-prefix">{entry.prompt}</span>}
@@ -415,7 +418,6 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
             </div>
           </div>
         ))}
-        <div ref={historyEndRef} aria-hidden="true" />
       </div>
       <form
         className="noetl-prompt-form"
