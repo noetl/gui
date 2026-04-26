@@ -264,10 +264,9 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
   const footerMenuItems = useMemo(() => {
     const footerLabels: Record<string, string> = {
       "/catalog": "Catalog",
-      "/execution": "Runs",
+      "/execution": "Execution",
       "/editor": "Edit",
       "/credentials": "Creds",
-      "/travel": "Travel",
       "/users": "Users",
     };
     return visibleMenuItems
@@ -538,7 +537,7 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
             />
             <ChromeIconButton
               icon={<PlaySquareOutlined />}
-              label="Runs"
+              label="Execution"
               onClick={() => navigate("/execution")}
             />
             {userRoles.includes("admin") && (
