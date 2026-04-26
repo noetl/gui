@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button, Input } from "antd";
 import { ClearOutlined, EnterOutlined } from "@ant-design/icons";
@@ -140,6 +140,7 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const inputRef = useRef<InputRef>(null);
+  const historyEndRef = useRef<HTMLDivElement>(null);
   const [command, setCommand] = useState("");
   const [busy, setBusy] = useState(false);
   const [history, setHistory] = useState<PromptEntry[]>([
@@ -157,6 +158,13 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
 
   const runtime = useMemo(() => apiService.getRuntimeContext(), []);
   const prompt = `noetl@${runtime.displayName}:${location.pathname || "~"}$`;
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      historyEndRef.current?.scrollIntoView({ block: "end" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [history]);
 
   const append = (entry: Omit<PromptEntry, "id">) => {
     setHistory((current) => [...current, { ...entry, id: Date.now() + Math.random() }].slice(-MAX_LINES));
@@ -407,6 +415,7 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
             </div>
           </div>
         ))}
+        <div ref={historyEndRef} aria-hidden="true" />
       </div>
       <form
         className="noetl-prompt-form"
