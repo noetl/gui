@@ -87,10 +87,10 @@ type MenuItem = {
 const ALL_MENU_ITEMS: MenuItem[] = [
   { key: "/catalog", label: "catalog", path: "/catalog", section: "Catalog", icon: <AppstoreOutlined />, roles: [], adminOnly: true },
   { key: "/execution", label: "observe", path: "/execution", section: "Operate", icon: <EyeOutlined />, roles: [], adminOnly: true },
+  { key: "/users", label: "users", path: "/users", section: "Admin", icon: <TeamOutlined />, roles: [], adminOnly: true },
   { key: "/editor", label: "edit", path: "/editor", section: "Build", icon: <CodeOutlined />, roles: [], adminOnly: true },
   { key: "/credentials", label: "secrets", path: "/credentials", section: "Admin", icon: <KeyOutlined />, roles: [], adminOnly: true },
   { key: "/travel", label: "travel", path: "/travel", section: "Operate", icon: <DatabaseOutlined />, roles: ["analyst", "viewer", "developer", "admin"] },
-  { key: "/users", label: "users", path: "/users", section: "Admin", icon: <TeamOutlined />, roles: [], adminOnly: true },
 ];
 
 function hasAccess(item: MenuItem, userRoles: string[]): boolean {
