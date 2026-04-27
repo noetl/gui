@@ -6,49 +6,49 @@ body {
     "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
   margin: 0;
   padding: 0;
-  background-color: #050805;
-  color: #9cff9c;
+  background-color: #050607;
+  color: #d7e3dd;
   line-height: 1.45;
 }
 
 :root {
   --noetl-radius: 5px;
   --noetl-radius-sm: 3px;
-  --mc-bg: #050805;
-  --mc-bg-rgb: 5, 8, 5;
-  --mc-panel: #071007;
-  --mc-panel-deep: #020402;
-  --mc-panel-soft: #102810;
-  --mc-border: #9cff9c;
-  --mc-border-dim: #2f6f2f;
-  --mc-text: #9cff9c;
-  --mc-muted: #5ea65e;
-  --mc-hotkey: #d6ffd6;
-  --mc-select: #173d17;
-  --mc-select-text: #ffffff;
-  --mc-bar: #c9d8c9;
-  --mc-bar-text: #050805;
-  --mc-danger: #ff9b9b;
+  --mc-bg: #050607;
+  --mc-bg-rgb: 5, 6, 7;
+  --mc-panel: #0a0f12;
+  --mc-panel-deep: #000000;
+  --mc-panel-soft: #111a1f;
+  --mc-border: #6fcb3f;
+  --mc-border-dim: #33443a;
+  --mc-text: #d7e3dd;
+  --mc-muted: #8aa198;
+  --mc-hotkey: #7cff3a;
+  --mc-select: #13271a;
+  --mc-select-text: #7cff3a;
+  --mc-bar: #111820;
+  --mc-bar-text: #d7e3dd;
+  --mc-danger: #ff6b6b;
   --mc-radius: var(--noetl-radius);
 }
 
 .terminal-app,
 .login-shell {
-  --mc-bg: #050805;
-  --mc-bg-rgb: 5, 8, 5;
-  --mc-panel: #071007;
-  --mc-panel-deep: #020402;
-  --mc-panel-soft: #102810;
-  --mc-border: #9cff9c;
-  --mc-border-dim: #2f6f2f;
-  --mc-text: #9cff9c;
-  --mc-muted: #5ea65e;
-  --mc-hotkey: #d6ffd6;
-  --mc-select: #173d17;
-  --mc-select-text: #ffffff;
-  --mc-bar: #c9d8c9;
-  --mc-bar-text: #050805;
-  --mc-danger: #ff9b9b;
+  --mc-bg: #050607;
+  --mc-bg-rgb: 5, 6, 7;
+  --mc-panel: #0a0f12;
+  --mc-panel-deep: #000000;
+  --mc-panel-soft: #111a1f;
+  --mc-border: #6fcb3f;
+  --mc-border-dim: #33443a;
+  --mc-text: #d7e3dd;
+  --mc-muted: #8aa198;
+  --mc-hotkey: #7cff3a;
+  --mc-select: #13271a;
+  --mc-select-text: #7cff3a;
+  --mc-bar: #111820;
+  --mc-bar-text: #d7e3dd;
+  --mc-danger: #ff6b6b;
   --mc-radius: var(--noetl-radius);
 }
 
@@ -79,8 +79,8 @@ body {
   background:
     repeating-linear-gradient(
       0deg,
-      rgba(255, 255, 255, 0.035),
-      rgba(255, 255, 255, 0.035) 1px,
+      rgba(124, 255, 58, 0.018),
+      rgba(124, 255, 58, 0.018) 1px,
       transparent 1px,
       transparent 4px
     ),
@@ -90,7 +90,7 @@ body {
 
 html[data-noetl-theme="dark"],
 html[data-noetl-theme="dark"] body {
-  background: #050805;
+  background: #050607;
 }
 
 html[data-noetl-theme="light"] {
@@ -155,8 +155,8 @@ html[data-noetl-theme="light"] body {
   background:
     repeating-linear-gradient(
       0deg,
-      rgba(255, 255, 255, 0.035),
-      rgba(255, 255, 255, 0.035) 1px,
+      rgba(124, 255, 58, 0.014),
+      rgba(124, 255, 58, 0.014) 1px,
       transparent 1px,
       transparent 4px
     ),
@@ -354,16 +354,16 @@ html[data-noetl-theme="light"] body {
   border-radius: var(--noetl-radius-sm);
   margin: 0 4px;
   transition: none;
-  color: #9cff9c !important;
+  color: var(--mc-text) !important;
 }
 
 .centered-menu .ant-menu-item:hover {
-  background-color: #123112 !important;
+  background-color: var(--mc-select) !important;
 }
 
 .centered-menu .ant-menu-item-selected {
-  background-color: #173d17 !important;
-  color: #ffffff !important;
+  background-color: var(--mc-select) !important;
+  color: var(--mc-select-text) !important;
 }
 
 .theme-switch {
@@ -548,7 +548,7 @@ body.workspace-resizing {
 }
 
 .noetl-prompt-line.success {
-  color: #91ffcf;
+  color: var(--mc-hotkey);
 }
 
 .noetl-prompt-line.error {
@@ -889,7 +889,7 @@ svg {
 .ant-pagination,
 .ant-pagination-item a,
 .ant-empty-description {
-  color: #9cff9c !important;
+  color: var(--mc-text) !important;
 }
 
 .terminal-app .ant-typography,
