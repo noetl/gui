@@ -200,11 +200,14 @@ class APIService {
   }
 
   getKubernetesMcpContext(): McpRuntimeContext {
+    const enabled = ["1", "true", "yes", "on", "enabled"].includes(
+      readAppEnv("VITE_MCP_KUBERNETES_ENABLED").trim().toLowerCase(),
+    );
     const url = readAppEnv("VITE_MCP_KUBERNETES_URL");
     return {
       name: "kubernetes",
       url,
-      configured: url.trim().length > 0,
+      configured: enabled && url.trim().length > 0,
     };
   }
 

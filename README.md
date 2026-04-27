@@ -64,8 +64,9 @@ Supported runtime variables:
 - `VITE_AUTH0_DOMAIN`
 - `VITE_AUTH0_CLIENT_ID`
 - `VITE_AUTH0_REDIRECT_URI`
-- `VITE_MCP_KUBERNETES_URL` (optional browser-visible MCP endpoint, for example `/mcp/kubernetes`)
-- `MCP_KUBERNETES_UPSTREAM` (optional nginx upstream for same-origin proxying, for example `http://kubernetes-mcp-server.mcp.svc.cluster.local:8080`)
+- `MCP_KUBERNETES_ENABLED` / `VITE_MCP_KUBERNETES_ENABLED` (`true`/`false`, defaults to `false`)
+- `VITE_MCP_KUBERNETES_URL` (browser-visible MCP endpoint, for example `/mcp/kubernetes`; only exposed when Kubernetes MCP is enabled)
+- `MCP_KUBERNETES_UPSTREAM` (nginx upstream for same-origin proxying, for example `http://kubernetes-mcp-server.mcp.svc.cluster.local:8080`; only rendered when Kubernetes MCP is enabled)
 - `VITE_APP_VERSION` / `APP_VERSION` (optional build/runtime version surfaced to MCP server client info)
 
 Example:
