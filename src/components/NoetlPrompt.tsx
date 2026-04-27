@@ -42,6 +42,8 @@ const ROUTE_ALIASES: Record<string, string> = {
   operate: "/execution",
   secrets: "/credentials",
 };
+const KUBERNETES_AGENT_PLAYBOOK = "automation/agents/kubernetes/runtime";
+const TERMINAL_STATUSES = new Set(["completed", "failed", "cancelled"]);
 
 interface NoetlPromptProps {
   className?: string;
@@ -128,6 +130,53 @@ function summarizeMcpTools(tools: Array<{ name: string; title?: string; descript
     .slice(0, 18)
     .map((tool) => `${tool.name}${tool.title ? ` :: ${tool.title}` : ""}${tool.description ? ` :: ${tool.description}` : ""}`)
     .join("\n");
+}
+
+function extractAgentPayload(execution: ExecutionData): Record<string, unknown> {
+  const candidates: unknown[] = [
+    execution.result,
+    ...(execution.events || []).map((event) => event.result).reverse(),
+  ];
+  for (const candidate of candidates) {
+    if (candidate && typeof candidate === "object" && !Array.isArray(candidate)) {
+      const item = candidate as Record<string, unknown>;
+      if (typeof item.text === "string" || item.raw || item.result) return item;
+      const data = item.data;
+      if (data && typeof data === "object" && !Array.isArray(data)) {
+        const dataItem = data as Record<string, unknown>;
+        if (typeof dataItem.text === "string" || dataItem.raw || dataItem.result) return dataItem;
+      }
+    }
+  }
+  return {};
+}
+
+function extractAgentText(execution: ExecutionData): string {
+  const payload = extractAgentPayload(execution);
+  const text = payload.text;
+  if (typeof text === "string" && text.trim()) return text.trim();
+  return compactJson(payload || execution.result, 2400);
+}
+
+function extractMcpToolsFromExecution(execution: ExecutionData): Array<{ name: string; title?: string; description?: string }> {
+  const payload = extractAgentPayload(execution);
+  const raw = payload.raw;
+  const result = payload.result;
+  const toolSource = raw && typeof raw === "object" && !Array.isArray(raw)
+    ? (raw as Record<string, unknown>).result
+    : result;
+  const tools = toolSource && typeof toolSource === "object" && !Array.isArray(toolSource)
+    ? (toolSource as Record<string, unknown>).tools
+    : undefined;
+  if (!Array.isArray(tools)) return [];
+  return tools
+    .filter((tool): tool is Record<string, unknown> => Boolean(tool) && typeof tool === "object" && !Array.isArray(tool))
+    .map((tool) => ({
+      name: String(tool.name || ""),
+      title: tool.title == null ? undefined : String(tool.title),
+      description: tool.description == null ? undefined : String(tool.description),
+    }))
+    .filter((tool) => tool.name.length > 0);
 }
 
 function parseKubernetesArgs(parts: string[]): Record<string, unknown> {
@@ -230,6 +279,33 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
     return { path: target, label: target };
   };
 
+  const runKubernetesAgent = async (
+    workload: Record<string, unknown>,
+    label: string,
+  ): Promise<ExecutionData> => {
+    const response = await apiService.executePlaybookWithPayload({
+      path: KUBERNETES_AGENT_PLAYBOOK,
+      version: "latest",
+      workload,
+      resource_kind: "agent",
+    });
+    append({
+      tone: "success",
+      text: `started ${label} :: execution=${response.execution_id}`,
+      actions: [
+        { label: `open ${response.execution_id}`, path: `/execution/${response.execution_id}` },
+        { label: `report ${response.execution_id}`, command: `report ${response.execution_id}` },
+      ],
+    });
+
+    let execution = await apiService.getExecution(response.execution_id, { page_size: 40 });
+    for (let i = 0; i < 20 && !TERMINAL_STATUSES.has(execution.status); i += 1) {
+      await new Promise((resolve) => window.setTimeout(resolve, 1000));
+      execution = await apiService.getExecution(response.execution_id, { page_size: 40 });
+    }
+    return execution;
+  };
+
   const runCommand = async (rawCommand: string) => {
     const trimmed = rawCommand.trim();
     if (!trimmed) return;
@@ -265,8 +341,8 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
             "fix <execution_id>              produce a diagnostic report",
             "rerun <execution_id> [json]     rerun an execution",
             "stop <execution_id>             stop a running execution",
-            "mcp status|tools                inspect configured MCP servers",
-            "k8s pods|ns|events|deploy|svc   query Kubernetes through MCP",
+            "mcp status|tools                inspect MCP through NoETL agent execution",
+            "k8s pods|ns|events|deploy|svc   query Kubernetes through playbook agent",
             "k8s deploy|svc|logs|top|noetl   inspect workloads, logs, usage",
             "clear                           clear prompt history",
           ].join("\n"),
@@ -296,8 +372,8 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
             ...ROUTES,
             { label: "playbooks", command: "playbooks", description: "catalog entries" },
             { label: "executions", command: "executions", description: "recent execution processes" },
-            { label: "mcp", command: "mcp status", description: "available model context servers" },
-            { label: "k8s", command: "k8s pods", description: "kubernetes runtime via MCP" },
+            { label: "mcp", command: "mcp status", description: "model context servers via playbook agent" },
+            { label: "k8s", command: "k8s pods", description: "kubernetes runtime via playbook agent" },
           ],
         });
       } else if (verb === "cd") {
@@ -328,16 +404,20 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
       } else if (verb === "mcp") {
         const subcommand = (restParts[0] || "status").toLowerCase();
         if (subcommand === "status") {
-          const health = await apiService.getKubernetesMcpHealth();
-          const tools = health.ok ? await apiService.listKubernetesMcpTools() : [];
+          const execution = await runKubernetesAgent({
+            method: "tools/list",
+          }, "kubernetes mcp status");
+          const tools = extractMcpToolsFromExecution(execution);
+          const ok = execution.status === "completed";
           append({
-            tone: health.ok ? "success" : "error",
+            tone: ok ? "success" : "error",
             text: [
-              `kubernetes :: ${health.message}`,
-              `url=${health.url || "-"}`,
+              `kubernetes :: ${ok ? "healthy" : execution.status}`,
+              `agent=${KUBERNETES_AGENT_PLAYBOOK}`,
+              `execution=${execution.execution_id}`,
               `tools=${tools.length}`,
             ].join("\n"),
-            actions: health.ok ? [
+            actions: ok ? [
               { label: "mcp tools", command: "mcp tools" },
               { label: "k8s namespaces", command: "k8s namespaces" },
               { label: "k8s pods", command: "k8s pods" },
@@ -345,7 +425,10 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
             ] : [],
           });
         } else if (subcommand === "tools") {
-          const tools = await apiService.listKubernetesMcpTools();
+          const execution = await runKubernetesAgent({
+            method: "tools/list",
+          }, "kubernetes mcp tools");
+          const tools = extractMcpToolsFromExecution(execution);
           append({ tone: "output", text: summarizeMcpTools(tools) });
         } else {
           throw new Error("usage: mcp status|tools");
@@ -394,8 +477,12 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
         } else {
           throw new Error("usage: k8s pods [namespace] | namespaces | events [namespace] | deployments [namespace] | services [namespace] | logs <pod> [namespace] [container] | top [namespace]");
         }
-        const result = await apiService.callKubernetesMcpTool(toolName, toolArgs);
-        append({ tone: "output", text: formatMcpToolResult(result.text) });
+        const execution = await runKubernetesAgent({
+          method: "tools/call",
+          tool: toolName,
+          arguments: toolArgs,
+        }, `k8s ${subject}`);
+        append({ tone: execution.status === "completed" ? "output" : "error", text: formatMcpToolResult(extractAgentText(execution)) });
       } else if (verb === "playbooks" || verb === "catalog") {
         const playbooks = rest ? await apiService.searchPlaybooks(rest) : await apiService.getPlaybooks();
         append({ tone: "output", ...summarizePlaybooks(playbooks) });
