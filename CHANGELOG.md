@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.0](https://github.com/noetl/gui/compare/v1.0.7...v1.1.0) (2026-04-27)
+
+### Features
+
+* route MCP terminal commands through agents ([#11](https://github.com/noetl/gui/issues/11)) ([b1d61a1](https://github.com/noetl/gui/commit/b1d61a15b6dc4bfe8b3d76ae8af7183dbf8c4637))
+
 ## [1.0.7](https://github.com/noetl/gui/compare/v1.0.6...v1.0.7) (2026-04-26)
 
 ### Bug Fixes
