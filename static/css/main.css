@@ -565,6 +565,71 @@ body.workspace-resizing {
   min-width: 0;
 }
 
+.noetl-prompt-structured {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.noetl-prompt-table-wrap {
+  border: 1px solid var(--mc-border-dim);
+  border-radius: var(--noetl-radius-sm);
+  max-width: 100%;
+  overflow: auto;
+  background: var(--mc-panel);
+}
+
+.noetl-prompt-table {
+  width: max-content;
+  min-width: min(100%, 720px);
+  border-collapse: collapse;
+  font: inherit;
+  color: var(--mc-text);
+  white-space: nowrap;
+}
+
+.noetl-prompt-table th,
+.noetl-prompt-table td {
+  border-right: 1px solid var(--mc-border-dim);
+  border-bottom: 1px solid var(--mc-border-dim);
+  padding: 3px 8px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.noetl-prompt-table th {
+  background: var(--mc-bar);
+  color: var(--mc-hotkey);
+  font-weight: 700;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.noetl-prompt-table th:first-child,
+.noetl-prompt-table td:first-child {
+  color: var(--mc-muted);
+  text-align: right;
+  min-width: 28px;
+}
+
+.noetl-prompt-table tr:nth-child(even) td {
+  background: color-mix(in srgb, var(--mc-panel-soft) 62%, transparent);
+}
+
+.noetl-prompt-table tr:hover td {
+  background: var(--mc-select);
+  color: var(--mc-select-text);
+}
+
+.noetl-prompt-table-more {
+  color: var(--mc-muted);
+  padding: 3px 8px;
+  border-top: 1px solid var(--mc-border-dim);
+}
+
 .noetl-prompt-result {
   min-width: 0;
   display: flex;

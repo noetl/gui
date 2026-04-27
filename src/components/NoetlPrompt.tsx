@@ -24,9 +24,28 @@ interface PromptEntry {
   collapsed?: boolean;
 }
 
+interface TerminalTable {
+  intro: string;
+  columns: string[];
+  rows: string[][];
+  outro: string;
+}
+
 const MAX_LINES = 24;
 const COLLAPSED_TEXT_LENGTH = 360;
 const COLLAPSED_ACTION_COUNT = 5;
+const TABLE_ROW_COLLAPSED_COUNT = 8;
+const TABLE_HEADER_MARKERS = new Set([
+  "NAMESPACE",
+  "NAME",
+  "KIND",
+  "STATUS",
+  "READY",
+  "TYPE",
+  "APIVERSION",
+  "REASON",
+  "AGE",
+]);
 const ROUTES: PromptAction[] = [
   { label: "catalog", path: "/catalog", description: "catalog discovery and playbook launch" },
   { label: "editor", path: "/editor", description: "playbook editor workspace" },
@@ -344,6 +363,90 @@ function resolveRoute(target: string): PromptAction | undefined {
 function getCollapsedText(text: string): string {
   if (text.length <= COLLAPSED_TEXT_LENGTH) return text;
   return `${text.slice(0, COLLAPSED_TEXT_LENGTH - 3)}...`;
+}
+
+function findTableHeaderLine(lines: string[]): number {
+  return lines.findIndex((line) => {
+    const cells = line.trim().split(/\s{2,}/).filter(Boolean);
+    if (cells.length < 3) return false;
+    const markerCount = cells.filter((cell) => TABLE_HEADER_MARKERS.has(cell.toUpperCase())).length;
+    return markerCount >= 2;
+  });
+}
+
+function parseFixedWidthRow(line: string, starts: number[]): string[] {
+  return starts.map((start, index) => {
+    const end = starts[index + 1] ?? line.length;
+    return line.slice(start, end).trim();
+  });
+}
+
+function parseTerminalTable(text: string): TerminalTable | undefined {
+  const lines = text.split("\n");
+  const headerIndex = findTableHeaderLine(lines);
+  if (headerIndex < 0) return undefined;
+
+  const headerLine = lines[headerIndex];
+  const matches = Array.from(headerLine.matchAll(/\S+/g));
+  if (matches.length < 3) return undefined;
+
+  const columns = matches.map((match) => match[0]);
+  const starts = matches.map((match) => match.index ?? 0);
+  const rows: string[][] = [];
+  const outroLines: string[] = [];
+
+  for (const line of lines.slice(headerIndex + 1)) {
+    if (!line.trim()) {
+      if (rows.length > 0) outroLines.push(line);
+      continue;
+    }
+    const parsed = parseFixedWidthRow(line, starts);
+    const nonEmpty = parsed.filter(Boolean).length;
+    if (nonEmpty >= Math.min(2, columns.length)) {
+      rows.push(parsed);
+    } else {
+      outroLines.push(line);
+    }
+  }
+
+  if (rows.length === 0) return undefined;
+  return {
+    intro: lines.slice(0, headerIndex).join("\n").trim(),
+    columns,
+    rows,
+    outro: outroLines.join("\n").trim(),
+  };
+}
+
+function renderTerminalTable(table: TerminalTable, collapsed?: boolean) {
+  const rows = collapsed ? table.rows.slice(0, TABLE_ROW_COLLAPSED_COUNT) : table.rows;
+  return (
+    <div className="noetl-prompt-table-wrap">
+      <table className="noetl-prompt-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            {table.columns.map((column) => (
+              <th key={column}>{column}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, rowIndex) => (
+            <tr key={`${rowIndex}-${row.join("|")}`}>
+              <td>{rowIndex}</td>
+              {table.columns.map((column, columnIndex) => (
+                <td key={`${rowIndex}-${column}`}>{row[columnIndex] || "-"}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {collapsed && table.rows.length > rows.length && (
+        <div className="noetl-prompt-table-more">... {table.rows.length - rows.length} more rows</div>
+      )}
+    </div>
+  );
 }
 
 const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
@@ -872,13 +975,25 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
                 const actions = entry.actions || [];
                 const actionsOverflow = actions.length > COLLAPSED_ACTION_COUNT;
                 const visibleActions = entry.collapsed ? actions.slice(0, COLLAPSED_ACTION_COUNT) : actions;
-                const visibleText = entry.collapsed ? getCollapsedText(text) : text;
-                const canToggle = textOverflows || actionsOverflow;
+                const table = !entry.prompt ? parseTerminalTable(text) : undefined;
+                const tableOverflows = Boolean(table && table.rows.length > TABLE_ROW_COLLAPSED_COUNT);
+                const visibleText = table
+                  ? ""
+                  : entry.collapsed ? getCollapsedText(text) : text;
+                const canToggle = textOverflows || actionsOverflow || tableOverflows;
 
                 return (
                   <>
                     <div className="noetl-prompt-result-head">
-                      {visibleText && <span className="noetl-prompt-text">{visibleText}</span>}
+                      {table ? (
+                        <div className="noetl-prompt-structured">
+                          {table.intro && <span className="noetl-prompt-text">{table.intro}</span>}
+                          {renderTerminalTable(table, entry.collapsed)}
+                          {table.outro && <span className="noetl-prompt-text">{entry.collapsed ? getCollapsedText(table.outro) : table.outro}</span>}
+                        </div>
+                      ) : (
+                        visibleText && <span className="noetl-prompt-text">{visibleText}</span>
+                      )}
                       {!entry.prompt && (
                         <div className="noetl-prompt-line-tools">
                           {canToggle && (
