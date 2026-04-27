@@ -155,7 +155,8 @@ function extractAgentText(execution: ExecutionData): string {
   const payload = extractAgentPayload(execution);
   const text = payload.text;
   if (typeof text === "string" && text.trim()) return text.trim();
-  return compactJson(payload || execution.result, 2400);
+  const fallbackSource = Object.keys(payload).length > 0 ? payload : execution.result;
+  return compactJson(fallbackSource, 2400);
 }
 
 function extractMcpToolsFromExecution(execution: ExecutionData): Array<{ name: string; title?: string; description?: string }> {
@@ -285,7 +286,6 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
   ): Promise<ExecutionData> => {
     const response = await apiService.executePlaybookWithPayload({
       path: KUBERNETES_AGENT_PLAYBOOK,
-      version: "latest",
       workload,
       resource_kind: "agent",
     });
@@ -428,8 +428,21 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
           const execution = await runKubernetesAgent({
             method: "tools/list",
           }, "kubernetes mcp tools");
-          const tools = extractMcpToolsFromExecution(execution);
-          append({ tone: "output", text: summarizeMcpTools(tools) });
+          if (execution.status === "completed") {
+            const tools = extractMcpToolsFromExecution(execution);
+            append({ tone: "output", text: summarizeMcpTools(tools) });
+          } else {
+            const executionError = (execution as ExecutionData & { error?: unknown }).error;
+            append({
+              tone: "error",
+              text: [
+                "kubernetes mcp tools unavailable",
+                `status=${execution.status}`,
+                `execution=${execution.execution_id}`,
+                ...(executionError ? [`error=${String(executionError)}`] : []),
+              ].join("\n"),
+            });
+          }
         } else {
           throw new Error("usage: mcp status|tools");
         }
