@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0](https://github.com/noetl/gui/compare/v1.1.2...v1.2.0) (2026-04-28)
+
+### Features
+
+* **theme:** rebuild dark + light themes around nushell.sh aesthetic ([#14](https://github.com/noetl/gui/issues/14)) ([092bb9e](https://github.com/noetl/gui/commit/092bb9e6d7a2340bd487bb02bf2c229de3545627)), closes [#181a23](https://github.com/noetl/gui/issues/181a23) [#fbf6](https://github.com/noetl/gui/issues/fbf6) [#4eb960](https://github.com/noetl/gui/issues/4eb960) [#1a7f5](https://github.com/noetl/gui/issues/1a7f5) [#f7768](https://github.com/noetl/gui/issues/f7768) [#c2410](https://github.com/noetl/gui/issues/c2410)
+
 ## [1.1.2](https://github.com/noetl/gui/compare/v1.1.1...v1.1.2) (2026-04-28)
 
 ### Bug Fixes
