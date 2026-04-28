@@ -292,8 +292,6 @@ const Execution: React.FC = () => {
 
   const parsePlaybookContent = (content: string): TaskNode[] => {
     try {
-      console.log("🔍 PARSING PLAYBOOK CONTENT");
-
       const lines = content.split("\n");
       const tasks: TaskNode[] = [];
       let currentTask: Partial<TaskNode> = {};
