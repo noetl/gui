@@ -64,9 +64,11 @@ Supported runtime variables:
 - `VITE_AUTH0_DOMAIN`
 - `VITE_AUTH0_CLIENT_ID`
 - `VITE_AUTH0_REDIRECT_URI`
-- `VITE_MCP_KUBERNETES_URL` (optional browser-visible MCP endpoint, for example `/mcp/kubernetes`)
-- `MCP_KUBERNETES_UPSTREAM` (optional nginx upstream for same-origin proxying, for example `http://kubernetes-mcp-server.mcp.svc.cluster.local:8080`)
 - `VITE_APP_VERSION` / `APP_VERSION` (optional build/runtime version surfaced to MCP server client info)
+
+The GUI never proxies or calls MCP servers directly. Terminal MCP commands discover
+registered catalog resources and launch NoETL agent playbooks, so MCP activity is
+recorded in NoETL execution/event state.
 
 Example:
 

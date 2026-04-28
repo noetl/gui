@@ -31,6 +31,15 @@ interface TerminalTable {
   outro: string;
 }
 
+interface TerminalWorkspace {
+  name: string;
+  path: string;
+  description: string;
+  agent?: PlaybookData;
+  resource?: PlaybookData;
+  actions: PromptAction[];
+}
+
 const MAX_LINES = 24;
 const COLLAPSED_TEXT_LENGTH = 360;
 const COLLAPSED_ACTION_COUNT = 5;
@@ -63,11 +72,6 @@ const ROUTE_ALIASES: Record<string, string> = {
 };
 const KUBERNETES_AGENT_PLAYBOOK = "automation/agents/kubernetes/runtime";
 const TERMINAL_STATUSES = new Set(["completed", "failed", "cancelled"]);
-const MCP_WORKSPACES: PromptAction[] = [
-  { label: "kubernetes", command: "cd /mcp/kubernetes", description: "runtime observability through playbook agent" },
-  { label: "noetl", command: "cd /mcp/noetl", description: "NoETL control-plane MCP workspace" },
-  { label: "github", command: "cd /mcp/github", description: "repository workflow MCP workspace" },
-];
 const KUBERNETES_ACTIONS: PromptAction[] = [
   { label: "status", command: "status", description: "server health and tool count" },
   { label: "tools", command: "tools", description: "list exposed MCP tools" },
@@ -99,6 +103,67 @@ function asRecord(value: unknown): Record<string, unknown> | undefined {
   return value && typeof value === "object" && !Array.isArray(value)
     ? value as Record<string, unknown>
     : undefined;
+}
+
+function asStringList(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item).trim()).filter(Boolean);
+  }
+  if (typeof value === "string" && value.trim()) {
+    return value.split(",").map((item) => item.trim()).filter(Boolean);
+  }
+  return [];
+}
+
+function metadataFor(entry?: PlaybookData): Record<string, unknown> {
+  return asRecord(entry?.payload?.metadata) || {};
+}
+
+function metaFor(entry?: PlaybookData): Record<string, unknown> {
+  return asRecord(entry?.meta) || {};
+}
+
+function terminalConfigFor(entry?: PlaybookData): Record<string, unknown> {
+  return asRecord(metadataFor(entry).terminal) || asRecord(metaFor(entry).terminal) || {};
+}
+
+function capabilitiesFor(entry?: PlaybookData): string[] {
+  return [
+    ...asStringList(metadataFor(entry).capabilities),
+    ...asStringList(metaFor(entry).capabilities),
+  ];
+}
+
+function isTerminalVisible(entry?: PlaybookData): boolean {
+  const terminal = terminalConfigFor(entry);
+  if (terminal.visible === false || terminal.visible === "false") return false;
+  if (Object.keys(terminal).length > 0) return true;
+  return capabilitiesFor(entry).some((capability) => capability.startsWith("mcp:"));
+}
+
+function workspaceNameFor(entry?: PlaybookData): string | undefined {
+  const terminal = terminalConfigFor(entry);
+  const workspace = terminal.workspace;
+  if (typeof workspace === "string" && workspace.trim()) {
+    return workspace.replace(/^\/?mcp\/?/i, "").trim().toLowerCase();
+  }
+
+  const scope = asStringList(terminal.scopes || terminal.scope)
+    .find((item) => item.startsWith("/mcp/") || item.startsWith("mcp/"));
+  if (scope) {
+    return scope.replace(/^\/?mcp\//i, "").trim().toLowerCase();
+  }
+
+  const capability = capabilitiesFor(entry).find((item) => item.startsWith("mcp:"));
+  if (capability) return capability.slice("mcp:".length).trim().toLowerCase();
+
+  const name = metadataFor(entry).name || entry?.path?.split("/").pop();
+  return typeof name === "string" && name.trim() ? name.trim().toLowerCase() : undefined;
+}
+
+function descriptionFor(entry?: PlaybookData): string {
+  const metadata = metadataFor(entry);
+  return String(metadata.description || metadata.name || entry?.path || "registered catalog resource");
 }
 
 function parseJsonText(value: unknown): unknown {
@@ -278,8 +343,7 @@ function normalizeWorkspacePath(target: string, current: string): string | undef
   if (normalized === "mcp") return "/mcp";
   if (normalized === "k8s" || normalized === "kubernetes") return "/mcp/kubernetes";
   if (normalized.startsWith("mcp/")) return `/${normalized}`;
-  if (current === "/mcp" && ["github", "noetl"].includes(normalized)) return `/mcp/${normalized}`;
-  if (current === "/mcp" && normalized === "kubernetes") return "/mcp/kubernetes";
+  if (current === "/mcp" && normalized) return `/mcp/${normalized}`;
   return undefined;
 }
 
@@ -314,6 +378,46 @@ function isKubernetesSubject(verb: string): boolean {
     "get",
     "describe",
   ].includes(verb);
+}
+
+function buildMcpWorkspaces(agents: PlaybookData[], resources: PlaybookData[]): TerminalWorkspace[] {
+  const workspaces = new Map<string, TerminalWorkspace>();
+
+  for (const resource of resources) {
+    const name = workspaceNameFor(resource);
+    if (!name) continue;
+    workspaces.set(name, {
+      name,
+      path: `/mcp/${name}`,
+      description: descriptionFor(resource),
+      resource,
+      actions: [
+        { label: `cd /mcp/${name}`, command: `cd /mcp/${name}`, description: "open workspace" },
+      ],
+    });
+  }
+
+  for (const agent of agents.filter(isTerminalVisible)) {
+    const name = workspaceNameFor(agent);
+    if (!name) continue;
+    const existing = workspaces.get(name);
+    const actions = name === "kubernetes"
+      ? KUBERNETES_ACTIONS
+      : [
+        { label: "status", command: "status", description: "inspect through agent playbook" },
+        { label: "tools", command: "tools", description: "list MCP tools through agent playbook" },
+      ];
+    workspaces.set(name, {
+      name,
+      path: `/mcp/${name}`,
+      description: descriptionFor(agent),
+      resource: existing?.resource,
+      agent,
+      actions,
+    });
+  }
+
+  return Array.from(workspaces.values()).sort((left, right) => left.name.localeCompare(right.name));
 }
 
 function formatKubernetesStatus(execution: ExecutionData, tools: Array<{ name: string; title?: string; description?: string }>): string {
@@ -522,14 +626,33 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
     return { path: target, label: target };
   };
 
-  const runKubernetesAgent = async (
+  const discoverMcpWorkspaces = async (): Promise<TerminalWorkspace[]> => {
+    const [agents, mcpResources] = await Promise.all([
+      apiService.getAgentPlaybooks(),
+      apiService.getCatalogResources("mcp").catch(() => []),
+    ]);
+    return buildMcpWorkspaces(agents, mcpResources);
+  };
+
+  const resolveMcpWorkspace = async (name: string): Promise<TerminalWorkspace | undefined> => {
+    const normalized = name.replace(/^\/?mcp\/?/i, "").trim().toLowerCase();
+    const workspaces = await discoverMcpWorkspaces();
+    return workspaces.find((workspace) => workspace.name === normalized || workspace.path === `/mcp/${normalized}`);
+  };
+
+  const runMcpAgent = async (
+    workspace: TerminalWorkspace,
     workload: Record<string, unknown>,
     label: string,
   ): Promise<ExecutionData> => {
+    if (!workspace.agent) {
+      throw new Error(`mcp/${workspace.name} has no registered terminal agent playbook`);
+    }
     const response = await apiService.executePlaybookWithPayload({
-      path: KUBERNETES_AGENT_PLAYBOOK,
+      catalog_id: workspace.agent.catalog_id,
+      path: workspace.agent.catalog_id ? undefined : workspace.agent.path,
       workload,
-      resource_kind: "agent",
+      resource_kind: workspace.agent.kind?.toLowerCase() === "agent" ? "agent" : "playbook",
     });
     append({
       tone: "success",
@@ -548,27 +671,73 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
     return execution;
   };
 
-  const appendMcpWorkspace = () => {
+  const appendMcpWorkspace = async () => {
+    const workspaces = await discoverMcpWorkspaces();
+    if (workspaces.length === 0) {
+      append({
+        tone: "output",
+        text: [
+          "mcp :: no registered MCP workspaces",
+          "discover=register MCP service resources and terminal-visible agent playbooks in the catalog",
+          "gui=operational; MCP commands are unavailable until catalog resources are registered",
+        ].join("\n"),
+        actions: [
+          { label: "catalog", path: "/catalog" },
+          { label: "playbooks", command: "playbooks" },
+          { label: "help", command: "help" },
+        ],
+      });
+      return;
+    }
     append({
       tone: "output",
       text: "mcp :: model context server workspaces",
       actions: [
-        ...MCP_WORKSPACES,
+        ...workspaces.map((workspace) => ({
+          label: workspace.name,
+          command: `cd ${workspace.path}`,
+          description: workspace.agent ? workspace.description : `${workspace.description} (no terminal agent)`,
+        })),
         { label: "discover", command: "mcp discover", description: "scan catalog resources" },
-        { label: "register", command: "mcp register", description: "register a new MCP resource" },
       ],
     });
   };
 
-  const appendKubernetesWorkspace = () => {
+  const appendKubernetesWorkspace = async () => {
+    const workspace = await resolveMcpWorkspace("kubernetes");
+    if (!workspace) {
+      appendUnavailableMcpWorkspace("kubernetes");
+      return;
+    }
     append({
       tone: "output",
       text: [
         "mcp/kubernetes :: Kubernetes runtime workspace",
-        `agent=${KUBERNETES_AGENT_PLAYBOOK}`,
+        `agent=${workspace.agent?.path || "-"}`,
         "scope=read-only observability via NoETL playbook execution",
       ].join("\n"),
-      actions: KUBERNETES_ACTIONS,
+      actions: workspace.actions,
+    });
+  };
+
+  const appendRegisteredMcpWorkspace = async (name: string) => {
+    if (name === "kubernetes") {
+      await appendKubernetesWorkspace();
+      return;
+    }
+    const workspace = await resolveMcpWorkspace(name);
+    if (!workspace) {
+      appendUnavailableMcpWorkspace(name);
+      return;
+    }
+    append({
+      tone: "output",
+      text: [
+        `mcp/${workspace.name} :: ${workspace.description}`,
+        `agent=${workspace.agent?.path || "-"}`,
+        "scope=operations through NoETL playbook execution",
+      ].join("\n"),
+      actions: workspace.actions,
     });
   };
 
@@ -589,32 +758,67 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
 
   const runMcpCommand = async (subcommand = "status") => {
     const normalized = subcommand.toLowerCase();
-    setCwd("/mcp/kubernetes");
+    if (normalized === "discover") {
+      setCwd("/mcp");
+      await appendMcpWorkspace();
+      return;
+    }
+    if (normalized === "register") {
+      append({
+        tone: "output",
+        text: [
+          "mcp register :: catalog registration required",
+          "register MCP services with resource_type=mcp",
+          "register terminal agents with metadata.agent=true and metadata.terminal.visible=true",
+        ].join("\n"),
+      });
+      return;
+    }
+    const workspaceName = cwd.startsWith("/mcp/") ? cwd.replace("/mcp/", "") : "";
+    let workspace = workspaceName ? await resolveMcpWorkspace(workspaceName) : undefined;
+    if (!workspace && !workspaceName) {
+      const workspaces = await discoverMcpWorkspaces();
+      workspace = workspaces.length === 1
+        ? workspaces[0]
+        : workspaces.find((candidate) => candidate.name === "kubernetes");
+    }
+    if (!workspace) {
+      throw new Error("no MCP terminal workspace selected. run `mcp discover` then `cd /mcp/<name>`");
+    }
+    setCwd(workspace.path);
     if (normalized === "status") {
-      const execution = await runKubernetesAgent({
+      const execution = await runMcpAgent(workspace, {
         method: "tools/list",
-      }, "kubernetes mcp status");
+      }, `${workspace.name} mcp status`);
       const tools = extractMcpToolsFromExecution(execution);
       const ok = execution.status === "completed";
       append({
         tone: ok ? "success" : "error",
-        text: formatKubernetesStatus(execution, tools),
-        actions: ok ? KUBERNETES_ACTIONS : [{ label: `open ${execution.execution_id}`, path: `/execution/${execution.execution_id}` }],
+        text: workspace.name === "kubernetes"
+          ? formatKubernetesStatus(execution, tools)
+          : [
+            `${workspace.name} :: ${execution.status}`,
+            `workspace=${workspace.path}`,
+            `agent=${workspace.agent?.path || "-"}`,
+            `execution=${execution.execution_id}`,
+            `tools=${tools.length}`,
+          ].join("\n"),
+        actions: ok ? workspace.actions : [{ label: `open ${execution.execution_id}`, path: `/execution/${execution.execution_id}` }],
       });
     } else if (normalized === "tools") {
-      const execution = await runKubernetesAgent({
+      const execution = await runMcpAgent(workspace, {
         method: "tools/list",
-      }, "kubernetes mcp tools");
+      }, `${workspace.name} mcp tools`);
       if (execution.status === "completed") {
         const tools = extractMcpToolsFromExecution(execution);
         append({
           tone: "output",
           text: [
-            `kubernetes tools :: ${tools.length}`,
+            `${workspace.name} tools :: ${tools.length}`,
             formatToolsByPrefix(tools),
             summarizeMcpTools(tools),
           ].join("\n"),
-          actions: KUBERNETES_ACTIONS,
+          actions: workspace.actions,
         });
       } else {
         const executionError = (execution as ExecutionData & { error?: unknown }).error;
@@ -628,17 +832,6 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
           ].join("\n"),
         });
       }
-    } else if (normalized === "discover") {
-      appendMcpWorkspace();
-    } else if (normalized === "register") {
-      append({
-        tone: "output",
-        text: [
-          "mcp register :: planned command",
-          "today=register MCP resources through catalog/playbook resources",
-          "next=add resource discovery and registration wizard",
-        ].join("\n"),
-      });
     } else {
       throw new Error("usage: mcp status|tools|discover|register");
     }
@@ -709,9 +902,13 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
   };
 
   const runKubernetesCommand = async (subjectRaw = "pods", args: string[] = []) => {
-    setCwd("/mcp/kubernetes");
+    const workspace = await resolveMcpWorkspace("kubernetes");
+    if (!workspace) {
+      throw new Error("mcp/kubernetes is not registered. Register the Kubernetes MCP service and terminal agent playbook first.");
+    }
+    setCwd(workspace.path);
     const { label, toolName, toolArgs } = resolveKubernetesTool(subjectRaw, args);
-    const execution = await runKubernetesAgent({
+    const execution = await runMcpAgent(workspace, {
       method: "tools/call",
       tool: toolName,
       arguments: toolArgs,
@@ -726,10 +923,7 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
       ].join("\n"),
       actions: [
         { label: `open ${execution.execution_id}`, path: `/execution/${execution.execution_id}` },
-        { label: "pods", command: "pods" },
-        { label: "namespaces", command: "namespaces" },
-        { label: "events", command: "events" },
-        { label: "services", command: "services" },
+        ...workspace.actions.slice(0, 5),
       ],
     });
   };
@@ -754,19 +948,23 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
     try {
       if (verb === "help") {
         if (cwd === "/mcp") {
+          const workspaces = await discoverMcpWorkspaces();
           append({
             tone: "output",
             text: [
               "ls                              list MCP workspaces",
-              "cd kubernetes                   enter Kubernetes MCP workspace",
-              "cd /mcp/noetl                   reserved NoETL MCP workspace",
-              "cd /mcp/github                  reserved GitHub MCP workspace",
-              "mcp discover                    show discoverable MCP resources",
-              "mcp register                    show registration next step",
+              "mcp discover                    show registered MCP services and terminal agents",
+              "cd <workspace>                  enter a registered MCP workspace",
+              "mcp register                    show registration guidance",
             ].join("\n"),
-            actions: MCP_WORKSPACES,
+            actions: workspaces.map((workspace) => ({
+              label: workspace.name,
+              command: `cd ${workspace.path}`,
+              description: workspace.description,
+            })),
           });
         } else if (isKubernetesWorkspace(cwd)) {
+          const workspace = await resolveMcpWorkspace("kubernetes");
           append({
             tone: "output",
             text: [
@@ -783,7 +981,7 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
               "top [namespace]                 show pod resource usage",
               "cd /mcp                         return to MCP workspaces",
             ].join("\n"),
-            actions: KUBERNETES_ACTIONS,
+            actions: workspace?.actions || [{ label: "mcp discover", command: "mcp discover" }],
           });
         } else {
           append({
@@ -792,7 +990,7 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
               "context                         show active NoETL API context",
               "menu                            show clickable navigation menu",
               "ls                              list current workspace options",
-              "cd <view|/mcp/kubernetes>       navigate to views or MCP workspaces",
+              "cd <view|/mcp>                  navigate to views or MCP workspaces",
               "open <view|execution_id>        open a view or execution detail",
               "status                          check server health",
               "playbooks [query]               discover catalog playbooks",
@@ -802,8 +1000,8 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
               "fix <execution_id>              produce a diagnostic report",
               "rerun <execution_id> [json]     rerun an execution",
               "stop <execution_id>             stop a running execution",
-              "mcp status|tools                inspect MCP through NoETL agent execution",
-              "k8s pods|ns|events|deploy|svc   query Kubernetes through playbook agent",
+              "mcp discover                    discover registered MCP terminal scopes",
+              "k8s pods|ns|events|deploy|svc   query Kubernetes if its agent is registered",
               "clear                           clear prompt history",
             ].join("\n"),
             actions: [
@@ -812,7 +1010,6 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
               { label: "executions", command: "executions" },
               { label: "status", command: "status" },
               { label: "cd /mcp", command: "cd /mcp" },
-              { label: "cd /mcp/kubernetes", command: "cd /mcp/kubernetes" },
             ],
           });
         }
@@ -824,18 +1021,19 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
         });
       } else if (verb === "ls") {
         if (cwd === "/mcp") {
-          appendMcpWorkspace();
+          await appendMcpWorkspace();
           return;
         }
         if (isKubernetesWorkspace(cwd)) {
-          appendKubernetesWorkspace();
+          await appendKubernetesWorkspace();
           return;
         }
         if (cwd.startsWith("/mcp/")) {
-          appendUnavailableMcpWorkspace(cwd.replace("/mcp/", ""));
+          await appendRegisteredMcpWorkspace(cwd.replace("/mcp/", ""));
           return;
         }
         const currentRoute = ROUTES.find((route) => location.pathname === route.path || location.pathname.startsWith(`${route.path}/`));
+        const workspaces = await discoverMcpWorkspaces();
         append({
           tone: "output",
           text: currentRoute
@@ -846,7 +1044,11 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
             { label: "playbooks", command: "playbooks", description: "catalog entries" },
             { label: "executions", command: "executions", description: "recent execution processes" },
             { label: "mcp", command: "cd /mcp", description: "model context server workspaces" },
-            { label: "kubernetes", command: "cd /mcp/kubernetes", description: "runtime via playbook agent" },
+            ...workspaces.slice(0, 4).map((workspace) => ({
+              label: workspace.name,
+              command: `cd ${workspace.path}`,
+              description: workspace.description,
+            })),
           ],
         });
       } else if (verb === "cd") {
@@ -855,9 +1057,8 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
           setCwd(workspacePath);
           if (!isMcpWorkspace(workspacePath)) navigate(workspacePath);
           append({ tone: "success", text: `directory changed to ${workspacePath}` });
-          if (workspacePath === "/mcp") appendMcpWorkspace();
-          else if (workspacePath === "/mcp/kubernetes") appendKubernetesWorkspace();
-          else if (workspacePath.startsWith("/mcp/")) appendUnavailableMcpWorkspace(workspacePath.replace("/mcp/", ""));
+          if (workspacePath === "/mcp") await appendMcpWorkspace();
+          else if (workspacePath.startsWith("/mcp/")) await appendRegisteredMcpWorkspace(workspacePath.replace("/mcp/", ""));
           return;
         }
         const route = resolveRoute(rest);
