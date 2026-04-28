@@ -16,6 +16,7 @@ import {
 import { PlayCircleOutlined, FileTextOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { apiService } from "../services/api";
+import { extractAgentText } from "../services/agentResult";
 import type { ExecutionData, UiSchema, UiSchemaField } from "../types";
 import "../styles/PlaybookRunDialog.css";
 
@@ -59,9 +60,28 @@ const PlaybookRunDialog: React.FC<RunDialogProps> = ({ open, onClose, path, fall
   const pollTimerRef = useRef<number | null>(null);
   const pollStartedAtRef = useRef<number | null>(null);
 
-  // Reset state whenever the dialog re-opens for a new playbook.
+  // Local helper used by both the open/path effect and handleSubmit so
+  // we never leak a polling loop tied to a previous execution / path.
+  const stopPolling = () => {
+    if (pollTimerRef.current !== null) {
+      window.clearTimeout(pollTimerRef.current);
+      pollTimerRef.current = null;
+    }
+    pollStartedAtRef.current = null;
+  };
+
+  // Reset state whenever the dialog re-opens for a new playbook AND
+  // tear down any in-flight polling when ``open`` flips false or the
+  // path changes — Modal `destroyOnClose` only unmounts our children,
+  // not us, so without this cleanup setExecutionData would keep firing
+  // after the user has closed the dialog or switched to a different
+  // playbook.
   useEffect(() => {
-    if (!open || !path) return;
+    if (!open || !path) {
+      stopPolling();
+      return;
+    }
+    stopPolling();
     setPhase("loading-schema");
     setSchema(null);
     setError(null);
@@ -95,21 +115,12 @@ const PlaybookRunDialog: React.FC<RunDialogProps> = ({ open, onClose, path, fall
 
     return () => {
       cancelled = true;
+      stopPolling();
     };
   }, [open, path, form]);
 
-  useEffect(
-    () => () => {
-      // Stop any in-flight polling on unmount.
-      if (pollTimerRef.current !== null) {
-        window.clearTimeout(pollTimerRef.current);
-        pollTimerRef.current = null;
-      }
-    },
-    [],
-  );
-
   const startPolling = (id: string) => {
+    stopPolling();
     pollStartedAtRef.current = Date.now();
     const tick = async () => {
       try {
@@ -117,6 +128,7 @@ const PlaybookRunDialog: React.FC<RunDialogProps> = ({ open, onClose, path, fall
         setExecutionData(next);
         if (isTerminalStatus(next.status)) {
           setPhase("terminal");
+          stopPolling();
           return;
         }
       } catch (err) {
@@ -126,6 +138,7 @@ const PlaybookRunDialog: React.FC<RunDialogProps> = ({ open, onClose, path, fall
       if (elapsed >= POLL_TIMEOUT_MS) {
         setPhase("terminal");
         setError("Polling timed out. Open the execution detail page for live status.");
+        stopPolling();
         return;
       }
       pollTimerRef.current = window.setTimeout(tick, POLL_INTERVAL_MS);
@@ -136,18 +149,34 @@ const PlaybookRunDialog: React.FC<RunDialogProps> = ({ open, onClose, path, fall
   const handleSubmit = async () => {
     if (!path || !schema) return;
     setSubmitting(true);
+    // Clear any error / stale execution data from a previous attempt so
+    // a successful resubmit doesn't keep showing a leftover warning in
+    // the result panel.
+    setError(null);
+    setExecutionData(null);
     try {
       const values = await form.validateFields();
       const workload = buildWorkloadFromForm(values, schema.fields);
       const response = await apiService.executePlaybookWithPayload({
         path,
+        // Pin to the same version the ui_schema came from. Without this
+        // an upstream catalog re-register between schema fetch and run
+        // could route the click to a different version than the form
+        // shape expects.
+        version: schema.version || "latest",
         workload,
       });
       setExecutionId(response.execution_id);
-      setExecutionData(null);
       setPhase("running");
       startPolling(response.execution_id);
     } catch (err: any) {
+      // Form validation failures from form.validateFields() carry
+      // .errorFields; surface them above the form rather than as a
+      // toast/inline panel by leaving the form open.
+      if (err?.errorFields) {
+        setSubmitting(false);
+        return;
+      }
       const detail = err?.response?.data?.detail || err?.message || "execute failed";
       setError(String(detail));
     } finally {
@@ -212,9 +241,13 @@ const PlaybookRunDialog: React.FC<RunDialogProps> = ({ open, onClose, path, fall
       {phase === "form" && schema && (
         <>
           {schema.description_markdown && (
-            <Paragraph className="playbook-run-dialog-description">
+            // metadata.description from the playbook YAML. Phase 1 renders
+            // it as preformatted text (CSS preserves whitespace + line
+            // wraps) — markdown rendering is a follow-up that needs a
+            // real markdown library + sanitiser added to the GUI deps.
+            <pre className="playbook-run-dialog-description">
               {schema.description_markdown}
-            </Paragraph>
+            </pre>
           )}
           {schema.fields.length === 0 ? (
             <Alert
@@ -316,6 +349,10 @@ function renderField(field: UiSchemaField): React.ReactNode {
           getValueProps={(value) => ({
             value: typeof value === "string" ? value : JSON.stringify(value, null, 2),
           })}
+          // Block submit when the user typed something that doesn't
+          // parse — silent fallback to the default would dispatch an
+          // execution with a payload the user didn't intend.
+          rules={[{ validator: validateJsonText }]}
         >
           <Input.TextArea autoSize={{ minRows: 2, maxRows: 8 }} />
         </Form.Item>
@@ -334,6 +371,21 @@ function renderField(field: UiSchemaField): React.ReactNode {
           <Input />
         </Form.Item>
       );
+  }
+}
+
+/**
+ * Antd Form async validator for object/null fields. Runs at submit
+ * time via `form.validateFields()` and rejects the form if the user
+ * typed something that doesn't parse.
+ */
+async function validateJsonText(_rule: unknown, value: unknown): Promise<void> {
+  if (value === undefined || value === null) return;
+  if (typeof value !== "string" || value.trim() === "") return;
+  try {
+    JSON.parse(value);
+  } catch (err) {
+    throw new Error("Invalid JSON — fix the value before running.");
   }
 }
 
@@ -360,12 +412,11 @@ function coerceFieldValue(raw: unknown, field: UiSchemaField): unknown {
     case "object":
     case "null":
       if (typeof raw !== "string") return raw;
-      try {
-        return JSON.parse(raw);
-      } catch {
-        // Bad JSON falls back to the default to avoid a 500 from /api/execute.
-        return field.default;
-      }
+      // ``validateJsonText`` rejects the form before this runs when the
+      // user typed invalid JSON, so we can parse here without falling
+      // back silently — a parse error at this point is a genuine
+      // programming bug worth surfacing.
+      return JSON.parse(raw);
     case "integer":
       return Number.isFinite(Number(raw)) ? Math.trunc(Number(raw)) : field.default;
     case "number":
@@ -401,7 +452,7 @@ const ExecutionResultPanel: React.FC<{
   const status = (execution?.status || "running").toLowerCase();
   const tone = status === "failed" ? "error" : status === "completed" ? "success" : "processing";
 
-  const text = useMemo(() => extractAgentText(execution), [execution]);
+  const text = useMemo(() => (execution ? extractAgentText(execution) : ""), [execution]);
 
   return (
     <div className="playbook-run-dialog-result">
@@ -428,37 +479,9 @@ const ExecutionResultPanel: React.FC<{
   );
 };
 
-function extractAgentText(execution: ExecutionData | null): string {
-  if (!execution) return "";
-  // Look for the agent-style summary first (kubernetes_runtime_agent and friends
-  // emit `result.context.text` via the patched `end` step in noetl/ops#13).
-  const candidates: unknown[] = [
-    (execution as any).result,
-    ...(execution.events || [])
-      .map((e: any) => e.result)
-      .reverse(),
-    ...(execution.events || [])
-      .map((e: any) => e.context)
-      .reverse(),
-  ];
-  for (const c of candidates) {
-    const t = readNestedText(c);
-    if (t) return t;
-  }
-  if (execution.result) return JSON.stringify(execution.result, null, 2);
-  return "";
-}
-
-function readNestedText(value: unknown, depth = 0): string | undefined {
-  if (depth > 4 || !value || typeof value !== "object") return undefined;
-  const v = value as Record<string, unknown>;
-  if (typeof v.text === "string" && v.text.trim()) return v.text;
-  for (const key of ["context", "data", "result"]) {
-    const nested = readNestedText(v[key], depth + 1);
-    if (nested) return nested;
-  }
-  return undefined;
-}
+// extractAgentText lives in services/agentResult.ts and is shared with
+// NoetlPrompt so the terminal and the run dialog can't disagree on
+// what the agent's output looks like.
 
 // ---------------------------------------------------------------------------
 // Footer rendering
