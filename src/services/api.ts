@@ -62,11 +62,21 @@ apiClient.interceptors.request.use((config) => {
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error?.response?.status === 401) {
+    const status = error?.response?.status;
+    if (status === 401) {
+      // Expected during session expiry — the SPA handles logout flow
+      // separately; logging every parallel 401 produces a flood of
+      // login-related noise so we silence them here.
       localStorage.removeItem(SESSION_TOKEN_KEY);
       localStorage.removeItem("user_info");
+      return Promise.reject(error);
     }
-    console.error("API Error:", error);
+    // Compact one-line summary; callers can still attach error.toJSON()
+    // detail when they need more context.
+    const url = error?.config?.url || "(unknown)";
+    const method = (error?.config?.method || "GET").toUpperCase();
+    const message = error?.message || "request failed";
+    console.warn(`API ${method} ${url} → ${status ?? "no-response"}: ${message}`);
     return Promise.reject(error);
   },
 );
