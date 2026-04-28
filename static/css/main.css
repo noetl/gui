@@ -1,74 +1,118 @@
 /* ==========================================================================
    Global & Body Styles
+   ----------------------------------------------------------------------------
+   Theme palette is nushell.sh-inspired: app chrome (header / menu / panels)
+   uses sans-serif typography and a calm slate-and-cream surface palette;
+   inside the terminal pane and any tabular data we keep monospace plus the
+   shell-output tag colors (string / number / bool / date / null / size).
    ========================================================================== */
-body {
-  font-family:
-    "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
-  margin: 0;
-  padding: 0;
-  background-color: #050607;
-  color: #d7e3dd;
-  line-height: 1.45;
-}
 
 :root {
-  --noetl-radius: 5px;
+  /* Geometry */
+  --noetl-radius: 6px;
   --noetl-radius-sm: 3px;
-  --mc-bg: #050607;
-  --mc-bg-rgb: 5, 6, 7;
-  --mc-panel: #0a0f12;
-  --mc-panel-deep: #000000;
-  --mc-panel-soft: #111a1f;
-  --mc-border: #6fcb3f;
-  --mc-border-dim: #33443a;
-  --mc-text: #d7e3dd;
-  --mc-muted: #8aa198;
-  --mc-hotkey: #7cff3a;
-  --mc-select: #13271a;
-  --mc-select-text: #7cff3a;
-  --mc-bar: #111820;
-  --mc-bar-text: #d7e3dd;
-  --mc-danger: #ff6b6b;
+
+  /* Typography */
+  --mc-font-sans:
+    "Inter", "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "Helvetica Neue", Arial, sans-serif;
+  --mc-font-mono:
+    "JetBrains Mono", "Fira Code", "SFMono-Regular", "SF Mono", Consolas,
+    "Liberation Mono", Menlo, Courier, monospace;
   --mc-radius: var(--noetl-radius);
+
+  /* Surface tokens — defaults are dark theme. Overridden under
+     [data-noetl-theme="light"]. */
+  --mc-bg: #181a23;
+  --mc-bg-rgb: 24, 26, 35;
+  --mc-panel: #232633;
+  --mc-panel-deep: #14161e;
+  --mc-panel-soft: #2a2e3d;
+  --mc-border: #4eb960;          /* nushell signature green for the focus border */
+  --mc-border-dim: #353a4c;
+  --mc-text: #e2e8f5;
+  --mc-muted: #8a93ac;
+  --mc-hotkey: #f7768e;          /* coral hotkey accent */
+  --mc-select: #2d3243;
+  --mc-select-text: #73daca;     /* teal-cyan when an item is highlighted */
+  --mc-bar: #1f222e;
+  --mc-bar-text: #e2e8f5;
+  --mc-danger: #f7768e;
+
+  /* Shell-output type tags — used in tables, terminal output, JSON pills.
+     Same names across themes so consumers don't need theme-aware logic. */
+  --mc-type-string:   #4eb960;
+  --mc-type-number:   #7aa2f7;
+  --mc-type-bool:     #e0af68;
+  --mc-type-null:     #565f89;
+  --mc-type-date:     #bb9af7;
+  --mc-type-filesize: #ff9e64;
+  --mc-type-key:      #73daca;
+  --mc-type-error:    #f7768e;
 }
 
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--mc-font-sans);
+  background-color: var(--mc-bg);
+  color: var(--mc-text);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Both .terminal-app and .login-shell are top-level wrappers that scope the
+   tokens to their subtree (defensive — html-level override below covers the
+   common case). */
 .terminal-app,
 .login-shell {
-  --mc-bg: #050607;
-  --mc-bg-rgb: 5, 6, 7;
-  --mc-panel: #0a0f12;
-  --mc-panel-deep: #000000;
-  --mc-panel-soft: #111a1f;
-  --mc-border: #6fcb3f;
-  --mc-border-dim: #33443a;
-  --mc-text: #d7e3dd;
-  --mc-muted: #8aa198;
-  --mc-hotkey: #7cff3a;
-  --mc-select: #13271a;
-  --mc-select-text: #7cff3a;
-  --mc-bar: #111820;
-  --mc-bar-text: #d7e3dd;
-  --mc-danger: #ff6b6b;
-  --mc-radius: var(--noetl-radius);
+  --mc-bg: #181a23;
+  --mc-bg-rgb: 24, 26, 35;
+  --mc-panel: #232633;
+  --mc-panel-deep: #14161e;
+  --mc-panel-soft: #2a2e3d;
+  --mc-border: #4eb960;
+  --mc-border-dim: #353a4c;
+  --mc-text: #e2e8f5;
+  --mc-muted: #8a93ac;
+  --mc-hotkey: #f7768e;
+  --mc-select: #2d3243;
+  --mc-select-text: #73daca;
+  --mc-bar: #1f222e;
+  --mc-bar-text: #e2e8f5;
+  --mc-danger: #f7768e;
 }
 
 .terminal-app.theme-light,
-.login-shell.theme-light {
-  --mc-bg: #eef4ef;
-  --mc-bg-rgb: 238, 244, 239;
+.login-shell.theme-light,
+html[data-noetl-theme="light"],
+html[data-noetl-theme="light"] .terminal-app,
+html[data-noetl-theme="light"] .login-shell {
+  --mc-bg: #fbf6ec;              /* warm cream */
+  --mc-bg-rgb: 251, 246, 236;
   --mc-panel: #ffffff;
-  --mc-panel-deep: #f7fbf7;
-  --mc-panel-soft: #eef5ee;
-  --mc-border: #0f6b3a;
-  --mc-border-dim: #c9d8c9;
-  --mc-text: #102010;
-  --mc-muted: #587258;
-  --mc-hotkey: #0f6b3a;
-  --mc-select: #e4f1e4;
-  --mc-select-text: #0f6b3a;
-  --mc-bar: #d8dfdc;
-  --mc-bar-text: #102010;
-  --mc-danger: #8c1d1d;
+  --mc-panel-deep: #f4ecdc;
+  --mc-panel-soft: #faf3e4;
+  --mc-border: #1a7f5a;          /* deep teal-green */
+  --mc-border-dim: #d8d0bb;
+  --mc-text: #1a1f2e;
+  --mc-muted: #5d6577;
+  --mc-hotkey: #c2410c;          /* coral hotkey */
+  --mc-select: #e8e0cb;
+  --mc-select-text: #1a7f5a;
+  --mc-bar: #f1e9d6;
+  --mc-bar-text: #1a1f2e;
+  --mc-danger: #b91c1c;
+
+  --mc-type-string:   #16a34a;
+  --mc-type-number:   #2563eb;
+  --mc-type-bool:     #b45309;
+  --mc-type-null:     #94a3b8;
+  --mc-type-date:     #7c3aed;
+  --mc-type-filesize: #ea580c;
+  --mc-type-key:      #0f766e;
+  --mc-type-error:    #b91c1c;
 }
 
 .login-shell {
@@ -76,44 +120,18 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background:
-    repeating-linear-gradient(
-      0deg,
-      rgba(124, 255, 58, 0.018),
-      rgba(124, 255, 58, 0.018) 1px,
-      transparent 1px,
-      transparent 4px
-    ),
-    var(--mc-bg);
+  background: var(--mc-bg);
   color: var(--mc-text);
 }
 
 html[data-noetl-theme="dark"],
 html[data-noetl-theme="dark"] body {
-  background: #050607;
-}
-
-html[data-noetl-theme="light"] {
-  --mc-bg: #eef4ef;
-  --mc-bg-rgb: 238, 244, 239;
-  --mc-panel: #ffffff;
-  --mc-panel-deep: #f7fbf7;
-  --mc-panel-soft: #eef5ee;
-  --mc-border: #0f6b3a;
-  --mc-border-dim: #c9d8c9;
-  --mc-text: #102010;
-  --mc-muted: #587258;
-  --mc-hotkey: #0f6b3a;
-  --mc-select: #e4f1e4;
-  --mc-select-text: #0f6b3a;
-  --mc-bar: #d8dfdc;
-  --mc-bar-text: #102010;
-  --mc-danger: #8c1d1d;
+  background: #181a23;
 }
 
 html[data-noetl-theme="light"],
 html[data-noetl-theme="light"] body {
-  background: #f5f7f5;
+  background: #fbf6ec;
 }
 
 /* ==========================================================================
@@ -152,16 +170,9 @@ html[data-noetl-theme="light"] body {
   box-sizing: border-box;
   padding-bottom: calc(var(--mc-footer-space, 28px) + 2px);
   overflow: hidden;
-  background:
-    repeating-linear-gradient(
-      0deg,
-      rgba(124, 255, 58, 0.014),
-      rgba(124, 255, 58, 0.014) 1px,
-      transparent 1px,
-      transparent 4px
-    ),
-    var(--mc-bg) !important;
+  background: var(--mc-bg) !important;
   color: var(--mc-text);
+  font-family: var(--mc-font-sans);
 }
 
 .terminal-app .ant-layout-header,
@@ -179,15 +190,34 @@ html[data-noetl-theme="light"] body {
   height: auto;
   min-height: 32px;
   margin: 10px 10px 0;
-  box-shadow: none;
+  box-shadow: 0 1px 0 var(--mc-border-dim);
   border-radius: var(--mc-radius);
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  border: 1px solid var(--mc-border);
+  border: 1px solid var(--mc-border-dim);
   gap: 0;
   overflow: hidden;
   min-height: 0;
+}
+
+/* nushell-style accent line under the menubar — quiet visual rhythm, not a
+   loud border, that signals the boundary between chrome and content. */
+.app-header::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    var(--mc-border) 0,
+    var(--mc-type-key) 50%,
+    var(--mc-hotkey) 100%
+  );
+  opacity: 0.55;
+  pointer-events: none;
 }
 
 .header-inner {
@@ -201,17 +231,28 @@ html[data-noetl-theme="light"] body {
 }
 
 .logo {
-  font-size: 16px;
-  font-weight: 700;
-  letter-spacing: 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
   white-space: nowrap;
   flex-shrink: 0;
   color: var(--mc-text);
   display: flex;
   align-items: center;
   text-transform: uppercase;
-  padding: 0 10px;
-  min-height: 28px;
+  padding: 0 12px;
+  min-height: 32px;
+  /* Use the mono stack for the brand mark so it reads as a prompt — same
+     reasoning nushell.sh uses for its inline "> nu ..." brand. */
+  font-family: var(--mc-font-mono);
+  border-right: 1px solid var(--mc-border-dim);
+}
+
+.logo::before {
+  content: ">";
+  color: var(--mc-border);
+  margin-right: 6px;
+  font-weight: 700;
 }
 
 .mc-top-line {
@@ -252,11 +293,16 @@ html[data-noetl-theme="light"] body {
 .mc-menu-item {
   background: transparent;
   color: var(--mc-bar-text);
-  min-height: 24px;
-  padding: 3px 8px;
+  min-height: 26px;
+  padding: 4px 10px;
   border-radius: var(--noetl-radius-sm);
   white-space: nowrap;
   text-transform: capitalize;
+  /* Sans body text in the menu — keep monospace for the hotkey letter only. */
+  font-family: var(--mc-font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 80ms ease, color 80ms ease;
 }
 
 .mc-menu-item:hover,
@@ -271,6 +317,8 @@ html[data-noetl-theme="light"] body {
   color: var(--mc-hotkey);
   text-decoration: underline;
   text-underline-offset: 2px;
+  font-family: var(--mc-font-mono);
+  font-weight: 600;
 }
 
 .mc-menu-item:hover .mc-menu-hotkey,
@@ -280,12 +328,18 @@ html[data-noetl-theme="light"] body {
 }
 
 .mc-context {
-  color: var(--mc-bar-text);
-  padding: 0 10px;
+  color: var(--mc-muted);
+  padding: 2px 10px;
   margin-left: auto;
   white-space: nowrap;
   text-transform: uppercase;
-  font-size: 12px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  font-family: var(--mc-font-mono);
+  /* Render the runtime context as a chip so it reads as data, not chrome. */
+  border: 1px solid var(--mc-border-dim);
+  border-radius: 999px;
+  background: var(--mc-panel-deep);
 }
 
 .mc-command-line {
@@ -521,6 +575,11 @@ body.workspace-resizing {
   padding: 9px 10px;
   border-radius: 0;
   overflow: hidden;
+  /* Inside the terminal pane keep the shell aesthetic — monospace, dense
+     spacing — even though the surrounding chrome is sans-serif. */
+  font-family: var(--mc-font-mono);
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 .noetl-prompt-history {
@@ -585,7 +644,9 @@ body.workspace-resizing {
   width: max-content;
   min-width: min(100%, 720px);
   border-collapse: collapse;
-  font: inherit;
+  /* Keep table data monospaced so column glyphs line up — nushell-style. */
+  font-family: var(--mc-font-mono);
+  font-size: 12.5px;
   color: var(--mc-text);
   white-space: nowrap;
 }
@@ -1065,10 +1126,12 @@ html[data-noetl-theme="dark"] .ant-picker-cell-selected .ant-picker-cell-inner {
   display: grid;
   grid-template-columns: repeat(10, minmax(64px, 1fr));
   gap: 1px;
-  padding: 1px;
+  padding: 2px;
   background: var(--mc-panel-deep) !important;
-  border-top: 1px solid var(--mc-border);
+  border-top: 1px solid var(--mc-border-dim);
   font-size: 12px;
+  font-family: var(--mc-font-sans);
+  letter-spacing: 0.02em;
 }
 
 .mc-function-footer button {
@@ -1077,14 +1140,15 @@ html[data-noetl-theme="dark"] .ant-picker-cell-selected .ant-picker-cell-inner {
   justify-content: flex-start;
   gap: 4px;
   min-width: 0;
-  min-height: 24px;
-  padding: 2px 5px;
+  min-height: 26px;
+  padding: 3px 8px;
   background: var(--mc-bar);
   color: var(--mc-bar-text);
   border-radius: var(--noetl-radius-sm);
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+  transition: background 80ms ease, color 80ms ease;
 }
 
 @media (max-width: 920px) {
@@ -1189,7 +1253,7 @@ html[data-noetl-theme="dark"] .ant-picker-cell-selected .ant-picker-cell-inner {
 }
 
 .theme-light .noetl-prompt-line.success {
-  color: #006f48;
+  color: var(--mc-type-string);
 }
 
 .theme-light .noetl-prompt-line.error {
@@ -1266,10 +1330,10 @@ html[data-noetl-theme="light"] .ant-picker-panel,
 html[data-noetl-theme="light"] .ant-picker-header,
 html[data-noetl-theme="light"] .ant-popover-inner,
 html[data-noetl-theme="light"] .ant-tooltip-inner {
-  background: #ffffff !important;
-  border-color: #c9d8c9 !important;
+  background: var(--mc-panel) !important;
+  border-color: var(--mc-border-dim) !important;
   border-radius: var(--noetl-radius-sm) !important;
-  color: #102010 !important;
+  color: var(--mc-text) !important;
 }
 
 html[data-noetl-theme="light"] .ant-dropdown-menu-item,
@@ -1278,7 +1342,7 @@ html[data-noetl-theme="light"] .ant-menu-submenu-popup .ant-menu-item,
 html[data-noetl-theme="light"] .ant-select-item,
 html[data-noetl-theme="light"] .ant-picker-cell,
 html[data-noetl-theme="light"] .ant-picker-content th {
-  color: #102010 !important;
+  color: var(--mc-text) !important;
 }
 
 html[data-noetl-theme="light"] .ant-dropdown-menu-item:hover,
@@ -1288,6 +1352,6 @@ html[data-noetl-theme="light"] .ant-select-item-option-active,
 html[data-noetl-theme="light"] .ant-select-item-option-selected,
 html[data-noetl-theme="light"] .ant-picker-cell-inner:hover,
 html[data-noetl-theme="light"] .ant-picker-cell-selected .ant-picker-cell-inner {
-  background: #e4f1e4 !important;
-  color: #0f6b3a !important;
+  background: var(--mc-select) !important;
+  color: var(--mc-select-text) !important;
 }

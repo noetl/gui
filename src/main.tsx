@@ -70,6 +70,10 @@ function readStoredTerminalHeight(): number {
   return Number.isFinite(stored) && stored > 0 ? Math.max(MIN_TERMINAL_HEIGHT, stored) : DEFAULT_TERMINAL_HEIGHT;
 }
 
+// Antd ConfigProvider tokens — kept in lockstep with the --mc-* CSS variables
+// in static/css/main.css. The chrome (header/menu/dialog) reads from antd
+// tokens; the terminal pane and tabular data rely on the CSS variables for the
+// nushell-style typed-value palette.
 const appThemeTokens: Record<AppTheme, {
   colorBgContainer: string;
   colorBgLayout: string;
@@ -78,18 +82,18 @@ const appThemeTokens: Record<AppTheme, {
   colorText: string;
 }> = {
   dark: {
-    colorPrimary: "#6fdc6f",
-    colorBgContainer: "#071007",
-    colorBgLayout: "#050805",
-    colorText: "#9cff9c",
-    colorBorder: "#2f6f2f",
+    colorPrimary: "#4eb960",       // nushell signature green
+    colorBgContainer: "#232633",   // raised surface
+    colorBgLayout: "#181a23",      // app background (slate)
+    colorText: "#e2e8f5",          // cool off-white
+    colorBorder: "#353a4c",        // muted border
   },
   light: {
-    colorPrimary: "#0f6b3a",
+    colorPrimary: "#1a7f5a",       // deep teal-green
     colorBgContainer: "#ffffff",
-    colorBgLayout: "#f5f7f5",
-    colorText: "#102010",
-    colorBorder: "#c9d8c9",
+    colorBgLayout: "#fbf6ec",      // warm cream
+    colorText: "#1a1f2e",
+    colorBorder: "#d8d0bb",        // warm beige
   },
 };
 
