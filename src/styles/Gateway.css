@@ -1,3 +1,7 @@
+/* Login page + Gateway Assistant chat surface.
+   All colors flow through the --mc-* theme tokens defined in main.css so dark
+   and light themes keep the gateway feeling like the rest of the app. */
+
 .gateway-login-wrap,
 .gateway-assistant-wrap {
   display: flex;
@@ -6,20 +10,26 @@
   width: 100%;
   min-height: 70vh;
   padding: 12px 0;
+  font-family: var(--mc-font-sans);
+  color: var(--mc-text);
 }
 
 .gateway-login-card {
   width: 100%;
   max-width: 520px;
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  border-radius: var(--noetl-radius);
+  background: var(--mc-panel);
+  border: 1px solid var(--mc-border-dim);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.18);
 }
 
 .gateway-assistant-card {
   width: 100%;
   max-width: 980px;
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  border-radius: var(--noetl-radius);
+  background: var(--mc-panel);
+  border: 1px solid var(--mc-border-dim);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.18);
 }
 
 .gateway-header {
@@ -37,14 +47,15 @@
   min-height: 320px;
   overflow: auto;
   padding: 12px;
-  border: 1px solid #f0f0f0;
-  border-radius: 8px;
-  background: #fafafa;
+  border: 1px solid var(--mc-border-dim);
+  border-radius: var(--noetl-radius-sm);
+  background: var(--mc-panel-soft);
 }
 
 .gateway-chat-empty {
   margin: auto;
   text-align: center;
+  color: var(--mc-muted);
 }
 
 .gateway-message {
@@ -63,15 +74,17 @@
 .gateway-message-content {
   max-width: min(80%, 760px);
   padding: 10px 12px;
-  border-radius: 10px;
-  background: #ffffff;
-  border: 1px solid #f0f0f0;
+  border-radius: var(--noetl-radius);
+  background: var(--mc-panel);
+  border: 1px solid var(--mc-border-dim);
+  color: var(--mc-text);
   white-space: pre-wrap;
 }
 
 .gateway-message.user .gateway-message-content {
-  background: #e6f4ff;
-  border-color: #b7ebff;
+  /* Calm tinted bubble for user messages — pulls from the type-key teal. */
+  background: color-mix(in srgb, var(--mc-type-key) 14%, var(--mc-panel));
+  border-color: color-mix(in srgb, var(--mc-type-key) 35%, var(--mc-border-dim));
 }
 
 .gateway-message-meta {
@@ -79,6 +92,8 @@
   align-items: center;
   gap: 8px;
   margin-top: 6px;
+  color: var(--mc-muted);
+  font-size: 12px;
 }
 
 @media (max-width: 768px) {
