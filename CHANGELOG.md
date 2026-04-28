@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.1](https://github.com/noetl/gui/compare/v1.1.0...v1.1.1) (2026-04-28)
+
+### Bug Fixes
+
+* remove direct MCP proxy from GUI ([#12](https://github.com/noetl/gui/issues/12)) ([7012e8d](https://github.com/noetl/gui/commit/7012e8d7cbac7f45009bd563d164497d13da5f21))
+
 ## [1.1.0](https://github.com/noetl/gui/compare/v1.0.7...v1.1.0) (2026-04-27)
 
 ### Features
