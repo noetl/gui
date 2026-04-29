@@ -88,22 +88,19 @@ interface NoetlPromptProps {
   className?: string;
 }
 
-function compactJson(value: unknown, maxLength = 240): string {
-  if (value === undefined || value === null || value === "") return "-";
-  if (typeof value === "string") return value.length > maxLength ? `${value.slice(0, maxLength - 3)}...` : value;
-  try {
-    const serialized = JSON.stringify(value);
-    return serialized.length > maxLength ? `${serialized.slice(0, maxLength - 3)}...` : serialized;
-  } catch {
-    return String(value);
-  }
-}
+// Shared agent-result helpers — re-exported here as locals so the
+// existing call sites keep working unchanged. The canonical
+// implementations live in services/agentResult.ts and are also used
+// by PlaybookRunDialog so the two surfaces stay consistent.
+import {
+  compactJson as _compactJson,
+  asRecord as _asRecord,
+  extractAgentPayload as _extractAgentPayload,
+  extractAgentText as _extractAgentText,
+} from "../services/agentResult";
 
-function asRecord(value: unknown): Record<string, unknown> | undefined {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : undefined;
-}
+const compactJson = _compactJson;
+const asRecord = _asRecord;
 
 function asStringList(value: unknown): string[] {
   if (Array.isArray(value)) {
@@ -249,47 +246,8 @@ function summarizeMcpTools(tools: Array<{ name: string; title?: string; descript
     .join("\n");
 }
 
-function extractAgentPayload(execution: ExecutionData): Record<string, unknown> {
-  const unwrap = (candidate: unknown): Record<string, unknown> | undefined => {
-    const item = asRecord(candidate);
-    if (!item) return undefined;
-    if (
-      typeof item.text === "string"
-      || item.raw
-      || item.method
-      || item.tool
-      || item.server
-      || item.arguments
-    ) {
-      return item;
-    }
-
-    for (const key of ["context", "data", "result"]) {
-      const nested = unwrap(item[key]);
-      if (nested) return nested;
-    }
-    return undefined;
-  };
-
-  const candidates: unknown[] = [
-    execution.result,
-    ...(execution.events || []).map((event) => event.result).reverse(),
-    ...(execution.events || []).map((event) => event.context).reverse(),
-  ];
-  for (const candidate of candidates) {
-    const payload = unwrap(candidate);
-    if (payload) return payload;
-  }
-  return {};
-}
-
-function extractAgentText(execution: ExecutionData): string {
-  const payload = extractAgentPayload(execution);
-  const text = payload.text;
-  if (typeof text === "string" && text.trim()) return text.trim();
-  const fallbackSource = Object.keys(payload).length > 0 ? payload : execution.result;
-  return compactJson(fallbackSource, 2400);
-}
+const extractAgentPayload = _extractAgentPayload;
+const extractAgentText = _extractAgentText;
 
 function extractMcpToolsFromExecution(execution: ExecutionData): Array<{ name: string; title?: string; description?: string }> {
   const payload = extractAgentPayload(execution);

@@ -325,7 +325,10 @@ class APIService {
    * to the manual JSON payload modal.
    */
   async getUiSchema(path: string, version: string | number = "latest"): Promise<UiSchema> {
-    // path may contain slashes; rely on axios to encode the segments.
+    // `path` may contain slashes, so encode each segment manually before
+    // rebuilding the URL path. Axios doesn't encode interpolated path
+    // segments for us, and encoding the whole string would also escape
+    // the `/` separators — neither is what we want.
     const safePath = path.split("/").map(encodeURIComponent).join("/");
     const response = await apiClient.get(`/catalog/${safePath}/ui_schema`, {
       params: { version },
