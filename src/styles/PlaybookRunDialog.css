@@ -1,0 +1,61 @@
+/* PlaybookRunDialog -- friendly playbook launcher backed by /ui_schema. */
+
+.playbook-run-dialog .ant-modal-body {
+  padding-top: 12px;
+}
+
+.playbook-run-dialog-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 0;
+}
+
+.playbook-run-dialog-description {
+  margin-bottom: 12px;
+  color: var(--mc-muted);
+  white-space: pre-wrap;
+}
+
+.playbook-run-dialog-form .ant-form-item {
+  margin-bottom: 14px;
+}
+
+.playbook-run-dialog-form .ant-form-item-label > label {
+  font-family: var(--mc-font-mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--mc-text);
+}
+
+.playbook-run-dialog-result {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-family: var(--mc-font-mono);
+}
+
+.playbook-run-dialog-result-head {
+  align-items: center;
+}
+
+.playbook-run-dialog-result-pending {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--mc-muted);
+}
+
+.playbook-run-dialog-result-text {
+  background: var(--mc-panel-deep);
+  border: 1px solid var(--mc-border-dim);
+  border-radius: var(--noetl-radius-sm);
+  color: var(--mc-text);
+  padding: 12px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  max-height: 360px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

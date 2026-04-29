@@ -33,6 +33,7 @@ import "../styles/Catalog.css";
 import { useNavigate } from "react-router-dom";
 import { AxiosError } from "axios";
 import { useViewToolbar } from "./ViewToolbarContext";
+import PlaybookRunDialog from "./PlaybookRunDialog";
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
@@ -95,6 +96,13 @@ const Catalog: React.FC = () => {
   const [searchLoading, setSearchLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Friendly run dialog state — feeds /api/catalog/{path}/ui_schema and
+  // dispatches /api/execute. Lives alongside the existing JSON Payload
+  // modal; the latter stays as the power-user fallback.
+  const [runDialogOpen, setRunDialogOpen] = useState(false);
+  const [runDialogPath, setRunDialogPath] = useState<string | undefined>(undefined);
+  const [runDialogTitle, setRunDialogTitle] = useState<string | undefined>(undefined);
 
   // Payload modal state
   const [payloadModalVisible, setPayloadModalVisible] = useState(false);
@@ -595,6 +603,19 @@ const Catalog: React.FC = () => {
                       Explain with AI
                     </Button>
                     <Button
+                      type="default"
+                      icon={<PlayCircleOutlined />}
+                      onClick={() => {
+                        setRunDialogPath(playbook.path);
+                        setRunDialogTitle(playbook.payload?.metadata?.name as string | undefined);
+                        setRunDialogOpen(true);
+                      }}
+                      disabled={playbook.status !== "active"}
+                      data-pw={`catalog.run-with-form`}
+                    >
+                      Run
+                    </Button>
+                    <Button
                       type="primary"
                       icon={<PlayCircleOutlined />}
                       onClick={() => handleExecutePlaybook(playbook.catalog_id)}
@@ -907,6 +928,13 @@ workflow:
           <ExplainSection title="Assumptions" items={normalizeExplainList(explainReport?.assumptions)} />
         </Space>
       </Modal>
+
+      <PlaybookRunDialog
+        open={runDialogOpen}
+        onClose={() => setRunDialogOpen(false)}
+        path={runDialogPath}
+        fallbackTitle={runDialogTitle}
+      />
     </Content>
   );
 };

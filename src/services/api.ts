@@ -8,6 +8,7 @@ import {
   PlaybookData,
   ServerStatus,
   CredentialData,
+  UiSchema,
 } from "../types";
 import { CreatePlaybookResponse } from "./api.types";
 import { resolveGatewayBaseUrl } from "./gatewayBaseUrl";
@@ -313,6 +314,23 @@ class APIService {
       "version": "latest"
     });
     return response.data;
+  }
+
+  /**
+   * Fetch the inferred workload form for a Playbook / Agent / Mcp resource.
+   *
+   * Backed by `GET /api/catalog/{path}/ui_schema` (introduced in
+   * noetl/noetl#392). When the noetl server is older than the endpoint
+   * (or the resource has no workload block) the caller should fall back
+   * to the manual JSON payload modal.
+   */
+  async getUiSchema(path: string, version: string | number = "latest"): Promise<UiSchema> {
+    // path may contain slashes; rely on axios to encode the segments.
+    const safePath = path.split("/").map(encodeURIComponent).join("/");
+    const response = await apiClient.get(`/catalog/${safePath}/ui_schema`, {
+      params: { version },
+    });
+    return response.data as UiSchema;
   }
 
   async createPlaybook(yaml: string): Promise<CreatePlaybookResponse> {

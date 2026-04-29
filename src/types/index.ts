@@ -111,6 +111,34 @@ export interface ExecutionData {
   };
 }
 
+/**
+ * Inferred workload form for a catalog resource, served by
+ * `GET /api/catalog/{path}/ui_schema`. The shape mirrors
+ * noetl/server/api/mcp/schema.py so changes have to be made on both
+ * sides at once.
+ */
+export interface UiSchemaField {
+  name: string;
+  kind: "string" | "integer" | "number" | "boolean" | "object" | "array" | "null" | "enum";
+  default?: JsonValue;
+  description?: string | null;
+  secret?: boolean;
+  credential_glob?: string | null;
+  options?: JsonValue[] | null;
+  children?: UiSchemaField[] | null;
+}
+
+export interface UiSchema {
+  path: string;
+  version: number;
+  kind: string;
+  title?: string | null;
+  description_markdown?: string | null;
+  exposed_in_ui?: boolean;
+  fields: UiSchemaField[];
+  generated_at: string;
+}
+
 export interface DashboardStats {
   total_playbooks: number;
   total_executions: number;
