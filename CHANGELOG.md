@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.1](https://github.com/noetl/gui/compare/v1.3.0...v1.3.1) (2026-04-29)
+
+### Bug Fixes
+
+* **catalog-run:** Copilot pass-1 review follow-up on [#16](https://github.com/noetl/gui/issues/16) ([#17](https://github.com/noetl/gui/issues/17)) ([216397f](https://github.com/noetl/gui/commit/216397f0a78c7cc873ab8a5272c43c3e7086fdc9))
+
 ## [1.3.0](https://github.com/noetl/gui/compare/v1.2.0...v1.3.0) (2026-04-29)
 
 ### Features
