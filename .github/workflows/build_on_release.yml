@@ -17,7 +17,13 @@ permissions:
 jobs:
   build_push_image:
     name: build and push GUI image
-    timeout-minutes: 20
+    # PR #16's friendly run dialog pushed the bundle size up enough that
+    # npm ci + Vite/TypeScript compile under QEMU-emulated arm64
+    # consistently exceeds 20 minutes (v1.3.0/v1.3.1 both cancelled at
+    # the cap). Cross-compiling on a native amd64 runner is the long-
+    # term answer; raising the cap to 60 minutes is the immediate
+    # unblock so the buildkit cache below can prime itself.
+    timeout-minutes: 60
     runs-on: ubuntu-latest
 
     env:
@@ -67,3 +73,11 @@ jobs:
             APP_VERSION=${{ env.IMAGE_TAG }}
           labels: ${{ steps.meta.outputs.labels }}
           tags: ${{ steps.meta.outputs.tags }}
+          # GitHub Actions cache keeps `npm ci` + the Vite build dist
+          # warm across runs. The first build (cold cache) still pays
+          # the full QEMU cost, but every subsequent release tag
+          # finishes in a few minutes instead of timing out at 20.
+          # `mode=max` writes layer cache including intermediate
+          # stages, not just the final image.
+          cache-from: type=gha,scope=gui-image
+          cache-to: type=gha,mode=max,scope=gui-image
