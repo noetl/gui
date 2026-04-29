@@ -59,10 +59,17 @@ const PlaybookRunDialog: React.FC<RunDialogProps> = ({ open, onClose, path, fall
 
   const pollTimerRef = useRef<number | null>(null);
   const pollStartedAtRef = useRef<number | null>(null);
+  // Epoch counter incremented every time we start or stop a polling
+  // session. The async tick() captures the epoch it was scheduled
+  // under and bails out before touching state or rescheduling if the
+  // epoch has moved on — covers the case where stopPolling() fires
+  // while an in-flight getExecution() is still resolving.
+  const pollEpochRef = useRef<number>(0);
 
   // Local helper used by both the open/path effect and handleSubmit so
   // we never leak a polling loop tied to a previous execution / path.
   const stopPolling = () => {
+    pollEpochRef.current += 1;
     if (pollTimerRef.current !== null) {
       window.clearTimeout(pollTimerRef.current);
       pollTimerRef.current = null;
@@ -121,10 +128,17 @@ const PlaybookRunDialog: React.FC<RunDialogProps> = ({ open, onClose, path, fall
 
   const startPolling = (id: string) => {
     stopPolling();
+    // Capture the epoch under which this polling session started.
+    // Every awaited tick re-checks it before mutating state or
+    // scheduling a follow-up so an in-flight request that resolves
+    // *after* stopPolling() can't restart the loop.
+    const epoch = pollEpochRef.current;
     pollStartedAtRef.current = Date.now();
     const tick = async () => {
+      if (epoch !== pollEpochRef.current) return;
       try {
         const next = await apiService.getExecution(id);
+        if (epoch !== pollEpochRef.current) return;
         setExecutionData(next);
         if (isTerminalStatus(next.status)) {
           setPhase("terminal");
@@ -132,7 +146,9 @@ const PlaybookRunDialog: React.FC<RunDialogProps> = ({ open, onClose, path, fall
           return;
         }
       } catch (err) {
-        // Network blip — keep polling unless we've passed the timeout.
+        // Network blip — keep polling unless we've passed the timeout
+        // or the session was cancelled while the request was in flight.
+        if (epoch !== pollEpochRef.current) return;
       }
       const elapsed = Date.now() - (pollStartedAtRef.current || Date.now());
       if (elapsed >= POLL_TIMEOUT_MS) {
@@ -141,6 +157,7 @@ const PlaybookRunDialog: React.FC<RunDialogProps> = ({ open, onClose, path, fall
         stopPolling();
         return;
       }
+      if (epoch !== pollEpochRef.current) return;
       pollTimerRef.current = window.setTimeout(tick, POLL_INTERVAL_MS);
     };
     tick();
@@ -377,7 +394,11 @@ function renderField(field: UiSchemaField): React.ReactNode {
 /**
  * Antd Form async validator for object/null fields. Runs at submit
  * time via `form.validateFields()` and rejects the form if the user
- * typed something that doesn't parse.
+ * typed something that doesn't parse. An empty / whitespace-only
+ * string is treated as "leave at the playbook's declared default" —
+ * passes validation and `coerceFieldValue` returns the default
+ * instead of attempting `JSON.parse("")` (which would otherwise
+ * throw and surface as a non-form runtime error).
  */
 async function validateJsonText(_rule: unknown, value: unknown): Promise<void> {
   if (value === undefined || value === null) return;
@@ -412,6 +433,13 @@ function coerceFieldValue(raw: unknown, field: UiSchemaField): unknown {
     case "object":
     case "null":
       if (typeof raw !== "string") return raw;
+      // Empty / whitespace-only input is treated as "no override";
+      // returning the playbook's declared default avoids an
+      // ``JSON.parse("")`` SyntaxError that ``validateJsonText`` lets
+      // through (so the user can clear the textarea to revert to
+      // the default without seeing a validation error). The two
+      // helpers must agree on this case.
+      if (raw.trim() === "") return field.default;
       // ``validateJsonText`` rejects the form before this runs when the
       // user typed invalid JSON, so we can parse here without falling
       // back silently — a parse error at this point is a genuine
