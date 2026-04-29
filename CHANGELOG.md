@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.0](https://github.com/noetl/gui/compare/v1.2.0...v1.3.0) (2026-04-29)
+
+### Features
+
+* **catalog:** friendly playbook run dialog backed by /ui_schema (architecture phase 4) ([#16](https://github.com/noetl/gui/issues/16)) ([d6c47ca](https://github.com/noetl/gui/commit/d6c47ca259b55dcb55554e41cd1c08beb1a9ceb8)), closes [noetl/noetl#392](https://github.com/noetl/noetl/issues/392) [#37](https://github.com/noetl/gui/issues/37)
+
 ## [1.2.0](https://github.com/noetl/gui/compare/v1.1.2...v1.2.0) (2026-04-28)
 
 ### Features
