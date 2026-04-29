@@ -746,6 +746,13 @@ body.workspace-resizing {
   align-items: baseline;
   gap: 4px;
   min-height: 22px;
+  /* Use a fixed-ish max-width to keep the action chips visually
+     consistent. min-width: 0 unlocks ellipsis on the description
+     once it's also a flex item with min-width: 0 (see `small` below).
+     Without this, flex's default `min-width: auto` would propagate
+     the description's intrinsic width up and squeeze the label down
+     to ~1ch, which then breaks per-character. */
+  min-width: 0;
   max-width: 320px;
   border: 1px solid var(--mc-border-dim);
   background: var(--mc-bar);
@@ -767,7 +774,20 @@ body.workspace-resizing {
   outline: none;
 }
 
+/* The label (action.label, e.g. `lifecycle:deploy`) is a short
+   identifier — keep it on one line at its natural width. Without
+   nowrap + flex-shrink:0 it would get crushed by a long description
+   and the label characters would stack vertically. */
+.noetl-prompt-action > span {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
 .noetl-prompt-action small {
+  /* min-width:0 + flex:1 lets the description ellipsis instead of
+     pushing the parent flex container wider than max-width. */
+  flex: 1 1 auto;
+  min-width: 0;
   color: var(--mc-muted);
   font-size: 10px;
   overflow: hidden;
