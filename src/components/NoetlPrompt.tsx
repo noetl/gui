@@ -313,6 +313,10 @@ function isMcpWorkspace(pathname: string): boolean {
   return pathname === "/mcp" || pathname.startsWith("/mcp/");
 }
 
+function isGenericMcpWorkspace(pathname: string): boolean {
+  return pathname.startsWith("/mcp/") && !isKubernetesWorkspace(pathname);
+}
+
 function isKubernetesSubject(verb: string): boolean {
   return [
     "namespaces",
@@ -886,6 +890,38 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
     });
   };
 
+  const runGenericMcpTool = async (subjectRaw: string, args: string[] = []) => {
+    const workspaceName = cwd.replace("/mcp/", "");
+    const workspace = await resolveMcpWorkspace(workspaceName);
+    if (!workspace) {
+      throw new Error(`mcp/${workspaceName} is not registered. run \`mcp discover\` then \`cd /mcp/<name>\``);
+    }
+    const toolName = subjectRaw.toLowerCase() === "call" ? args[0] : subjectRaw;
+    const payloadParts = subjectRaw.toLowerCase() === "call" ? args.slice(1) : args;
+    if (!toolName) {
+      throw new Error("usage: call <tool> [json|--set key=value]");
+    }
+    const toolArgs = parseWorkload(payloadParts.join(" "));
+    const execution = await runMcpAgent(workspace, {
+      method: "tools/call",
+      tool: toolName,
+      arguments: toolArgs,
+    }, `${workspace.name} ${toolName}`);
+    append({
+      tone: execution.status === "completed" ? "output" : "error",
+      text: [
+        `${toolName} :: ${execution.status}`,
+        `execution=${execution.execution_id}`,
+        `tool=${toolName}`,
+        formatMcpToolResult(extractAgentText(execution)),
+      ].join("\n"),
+      actions: [
+        { label: `open ${execution.execution_id}`, path: `/execution/${execution.execution_id}` },
+        ...workspace.actions.slice(0, 5),
+      ],
+    });
+  };
+
   const runCommand = async (rawCommand: string) => {
     const trimmed = rawCommand.trim();
     if (!trimmed) return;
@@ -938,6 +974,20 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
               "logs <pod> [namespace] [ctr]    tail pod logs",
               "top [namespace]                 show pod resource usage",
               "cd /mcp                         return to MCP workspaces",
+            ].join("\n"),
+            actions: workspace?.actions || [{ label: "mcp discover", command: "mcp discover" }],
+          });
+        } else if (isGenericMcpWorkspace(cwd)) {
+          const workspaceName = cwd.replace("/mcp/", "");
+          const workspace = await resolveMcpWorkspace(workspaceName);
+          append({
+            tone: "output",
+            text: [
+              "status                          inspect selected MCP workspace through its agent playbook",
+              "tools                           list exposed MCP tools",
+              "call <tool> [json|--set k=v]    invoke an MCP tool through NoETL execution",
+              "cd /mcp                         return to MCP workspaces",
+              "mcp discover                    refresh registered MCP workspace list",
             ].join("\n"),
             actions: workspace?.actions || [{ label: "mcp discover", command: "mcp discover" }],
           });
@@ -1047,6 +1097,10 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
         await runMcpCommand(verb);
       } else if (isKubernetesWorkspace(cwd) && isKubernetesSubject(verb)) {
         await runKubernetesCommand(verb, restParts);
+      } else if (isGenericMcpWorkspace(cwd) && (verb === "status" || verb === "tools")) {
+        await runMcpCommand(verb);
+      } else if (isGenericMcpWorkspace(cwd) && verb === "call") {
+        await runGenericMcpTool(verb, restParts);
       } else if (verb === "status") {
         const health = await apiService.getHealth();
         append({ tone: health.status === "ok" || health.status === "healthy" ? "success" : "output", text: compactJson(health) });
