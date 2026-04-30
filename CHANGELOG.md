@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.0](https://github.com/noetl/gui/compare/v1.3.2...v1.4.0) (2026-04-30)
+
+### Features
+
+* **prompt:** support generic MCP workspace calls ([#20](https://github.com/noetl/gui/issues/20)) ([ee8e5ec](https://github.com/noetl/gui/commit/ee8e5ecc3105b826aede8b8f9214a5628aafa1be))
+
 ## [1.3.2](https://github.com/noetl/gui/compare/v1.3.1...v1.3.2) (2026-04-29)
 
 ### Bug Fixes
