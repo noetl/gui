@@ -374,6 +374,10 @@ function isKubernetesSubject(verb: string): boolean {
 
 function buildMcpWorkspaces(agents: PlaybookData[], resources: PlaybookData[]): TerminalWorkspace[] {
   const workspaces = new Map<string, TerminalWorkspace>();
+  const versionNumber = (entry?: PlaybookData): number => {
+    const parsed = Number(entry?.version ?? 0);
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
 
   for (const resource of resources) {
     const name = workspaceNameFor(resource);
@@ -393,6 +397,9 @@ function buildMcpWorkspaces(agents: PlaybookData[], resources: PlaybookData[]): 
     const name = workspaceNameFor(agent);
     if (!name) continue;
     const existing = workspaces.get(name);
+    if (existing?.agent && versionNumber(existing.agent) > versionNumber(agent)) {
+      continue;
+    }
     const actions = name === "kubernetes"
       ? KUBERNETES_ACTIONS
       : [
