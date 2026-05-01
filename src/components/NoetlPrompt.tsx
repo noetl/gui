@@ -45,10 +45,13 @@ const COLLAPSED_TEXT_LENGTH = 360;
 const COLLAPSED_ACTION_COUNT = 5;
 const TABLE_ROW_COLLAPSED_COUNT = 8;
 const TABLE_HEADER_MARKERS = new Set([
+  "DESCRIPTION",
   "NAMESPACE",
   "NAME",
   "KIND",
   "STATUS",
+  "TITLE",
+  "TOOL",
   "READY",
   "TYPE",
   "APIVERSION",
@@ -238,14 +241,6 @@ function summarizeExecutions(executions: ExecutionData[]): { text: string; actio
   };
 }
 
-function summarizeMcpTools(tools: Array<{ name: string; title?: string; description?: string }>): string {
-  if (tools.length === 0) return "no MCP tools exposed";
-  return tools
-    .slice(0, 18)
-    .map((tool) => `${tool.name}${tool.title ? ` :: ${tool.title}` : ""}${tool.description ? ` :: ${tool.description}` : ""}`)
-    .join("\n");
-}
-
 const extractAgentPayload = _extractAgentPayload;
 const extractAgentText = _extractAgentText;
 
@@ -260,7 +255,7 @@ function extractMcpToolsFromExecution(execution: ExecutionData): Array<{ name: s
   const tools = toolSource
     ? toolSource.tools
     : undefined;
-  if (!Array.isArray(tools)) return [];
+  if (!Array.isArray(tools)) return extractToolNamesFromText(toolSource?.text || payload.text);
   return tools
     .filter((tool): tool is Record<string, unknown> => Boolean(tool) && typeof tool === "object" && !Array.isArray(tool))
     .map((tool) => ({
@@ -269,6 +264,41 @@ function extractMcpToolsFromExecution(execution: ExecutionData): Array<{ name: s
       description: tool.description == null ? undefined : String(tool.description),
     }))
     .filter((tool) => tool.name.length > 0);
+}
+
+function extractToolNamesFromText(value: unknown): Array<{ name: string }> {
+  if (typeof value !== "string") return [];
+  return value
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => /^[a-zA-Z][a-zA-Z0-9_.:-]*$/.test(line))
+    .map((name) => ({ name }));
+}
+
+function formatMcpToolsTable(tools: Array<{ name: string; title?: string; description?: string }>): string {
+  if (tools.length === 0) return "no MCP tools exposed";
+  const rows = tools.slice(0, 40).map((tool) => [
+    tool.name,
+    tool.title || "tool",
+    tool.description || "-",
+  ]);
+  const widths = [4, 4, 11];
+  rows.forEach((row) => {
+    row.forEach((cell, index) => {
+      widths[index] = Math.min(48, Math.max(widths[index], cell.length));
+    });
+  });
+  const formatRow = (row: string[]) => row
+    .map((cell, index) => {
+      const clipped = cell.length > 48 ? `${cell.slice(0, 45)}...` : cell;
+      return clipped.padEnd(widths[index]);
+    })
+    .join("  ")
+    .trimEnd();
+  return [
+    formatRow(["NAME", "KIND", "DESCRIPTION"]),
+    ...rows.map(formatRow),
+  ].join("\n");
 }
 
 function formatToolsByPrefix(tools: Array<{ name: string; title?: string; description?: string }>): string {
@@ -778,7 +808,7 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
           text: [
             `${workspace.name} tools :: ${tools.length}`,
             formatToolsByPrefix(tools),
-            summarizeMcpTools(tools),
+            formatMcpToolsTable(tools),
           ].join("\n"),
           actions: workspace.actions,
         });
