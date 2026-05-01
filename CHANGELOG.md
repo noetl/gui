@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.1](https://github.com/noetl/gui/compare/v1.4.0...v1.4.1) (2026-05-01)
+
+### Bug Fixes
+
+* **prompt:** render MCP tools as terminal tables ([#21](https://github.com/noetl/gui/issues/21)) ([5b0ac7c](https://github.com/noetl/gui/commit/5b0ac7c9693e36b65cb7c78fdf68f2ba3f76462a))
+
 ## [1.4.0](https://github.com/noetl/gui/compare/v1.3.2...v1.4.0) (2026-04-30)
 
 ### Features
