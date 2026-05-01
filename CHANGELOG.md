@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.2](https://github.com/noetl/gui/compare/v1.4.1...v1.4.2) (2026-05-01)
+
+### Bug Fixes
+
+* **prompt:** prefer latest MCP terminal agents ([#22](https://github.com/noetl/gui/issues/22)) ([8e220ce](https://github.com/noetl/gui/commit/8e220ceac5cb4aa19b4880bad90ccda109c9b766))
+
 ## [1.4.1](https://github.com/noetl/gui/compare/v1.4.0...v1.4.1) (2026-05-01)
 
 ### Bug Fixes
