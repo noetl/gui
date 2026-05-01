@@ -671,8 +671,8 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
         >
           Help
         </button>
-        <button type="button" onClick={toggleTerminalPane}>Terminal</button>
-        <button type="button" onClick={toggleDashboardPane}>Dashboard</button>
+        <button type="button" onClick={maximizeTerminal}>Terminal</button>
+        <button type="button" onClick={maximizeDashboard}>Dashboard</button>
         {footerMenuItems.map((item) => (
           <button key={item.path} type="button" onClick={() => navigate(item.path)}>
             {item.label}
