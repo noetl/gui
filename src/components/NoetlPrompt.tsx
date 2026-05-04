@@ -1202,7 +1202,20 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
         await apiService.stopExecution(rest);
         append({ tone: "success", text: `stop requested :: execution=${rest}` });
       } else {
-        append({ tone: "error", text: `unknown command: ${verb}. type help` });
+        // Bare verb that matches a known route or alias (e.g. `travel`,
+        // `users`, `editor`, `credentials`, `admin`, `build`, `observe`,
+        // `operate`, `secrets`) is treated as shorthand for `cd <route>`.
+        // Verbs that have explicit handlers above (catalog, mcp, k8s,
+        // playbooks, executions, etc.) never reach here, so this can't
+        // shadow them.
+        const route = resolveRoute(verb);
+        if (route?.path) {
+          navigate(route.path);
+          setCwd(workspaceFromPath(route.path));
+          append({ tone: "success", text: `directory changed to ${route.path}` });
+        } else {
+          append({ tone: "error", text: `unknown command: ${verb}. type help` });
+        }
       }
     } catch (error: any) {
       append({ tone: "error", text: error?.message || "command failed" });
