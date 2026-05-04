@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.0](https://github.com/noetl/gui/compare/v1.5.0...v1.6.0) (2026-05-04)
+
+### Features
+
+* **gateway-assistant:** clickable connection diagnostic popover ([#24](https://github.com/noetl/gui/issues/24)) ([818b76a](https://github.com/noetl/gui/commit/818b76a788288f6bc08c7da2b315965a008f45c6)), closes [noetl/gui#19](https://github.com/noetl/gui/issues/19)
+
 ## [1.5.0](https://github.com/noetl/gui/compare/v1.4.2...v1.5.0) (2026-05-04)
 
 ### Features
