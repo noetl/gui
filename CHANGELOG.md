@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.0](https://github.com/noetl/gui/compare/v1.6.0...v1.7.0) (2026-05-04)
+
+### Features
+
+* **gateway-assistant:** direct-mode submit path (no gateway required) ([#25](https://github.com/noetl/gui/issues/25)) ([5da6b34](https://github.com/noetl/gui/commit/5da6b34229a41444fdc395ea2b472ea046f8953e)), closes [#24](https://github.com/noetl/gui/issues/24) [noetl/gui#23](https://github.com/noetl/gui/issues/23) [noetl/gui#24](https://github.com/noetl/gui/issues/24)
+
 ## [1.6.0](https://github.com/noetl/gui/compare/v1.5.0...v1.6.0) (2026-05-04)
 
 ### Features
