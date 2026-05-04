@@ -1,18 +1,62 @@
 import { useEffect, useMemo, useState } from "react";
-import { Alert, Button, Card, Input, Space, Tag, Typography } from "antd";
+import { Alert, Button, Card, Descriptions, Input, Popover, Space, Tag, Typography } from "antd";
 import { useNavigate } from "react-router-dom";
 import {
   connectSSE,
   disconnectSSE,
   executeGatewayPlaybook,
+  getSseDiagnostics,
   getUserInfo,
   isAuthenticated,
   logout,
   subscribeConnection,
   subscribeProgress,
   validateSession,
+  type SseDiagnostics,
 } from "../services/gatewayAuth";
 import "../styles/Gateway.css";
+
+function formatTimestamp(ts: number | null): string {
+  if (!ts) return "—";
+  const ago = Math.max(0, Math.round((Date.now() - ts) / 1000));
+  return `${new Date(ts).toLocaleTimeString()} (${ago}s ago)`;
+}
+
+function ConnectionDiagnostic({ diag }: { diag: SseDiagnostics }) {
+  return (
+    <Descriptions
+      column={1}
+      size="small"
+      style={{ minWidth: 360, maxWidth: 520 }}
+    >
+      <Descriptions.Item label="State">
+        {diag.connected ? "connected" : diag.readyStateName}
+      </Descriptions.Item>
+      <Descriptions.Item label="URL">
+        <Text code copyable style={{ fontSize: 11 }}>
+          {diag.url || "(not configured — gateway URL missing or session token absent)"}
+        </Text>
+      </Descriptions.Item>
+      <Descriptions.Item label="Session token">
+        {diag.hasSessionToken ? "present" : "missing — sign in first"}
+      </Descriptions.Item>
+      <Descriptions.Item label="Client id">
+        {diag.clientId || "—"}
+      </Descriptions.Item>
+      <Descriptions.Item label="Last opened">
+        {formatTimestamp(diag.lastOpenAt)}
+      </Descriptions.Item>
+      <Descriptions.Item label="Last error">
+        {diag.lastErrorMessage
+          ? `${diag.lastErrorMessage} @ ${formatTimestamp(diag.lastErrorAt)}`
+          : "—"}
+      </Descriptions.Item>
+      <Descriptions.Item label="Reconnect attempts">
+        {`${diag.reconnectAttempts} / ${diag.maxReconnectAttempts}`}
+      </Descriptions.Item>
+    </Descriptions>
+  );
+}
 
 const { Title, Text } = Typography;
 
@@ -63,6 +107,10 @@ const GatewayAssistant = () => {
   const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>(loadMessages);
+  // Diagnostic snapshot for the connection-indicator popover. Refreshed
+  // every 1s while the popover is potentially visible — cheap snapshot
+  // of in-memory state, no network calls.
+  const [diag, setDiag] = useState<SseDiagnostics>(() => getSseDiagnostics());
   const user = useMemo(() => getUserInfo(), []);
 
   useEffect(() => {
@@ -71,14 +119,20 @@ const GatewayAssistant = () => {
 
     const unsubscribeConnection = subscribeConnection((connected) => {
       setConnectionReady(connected);
+      setDiag(getSseDiagnostics());
     });
     const unsubscribeProgress = subscribeProgress((message) => {
       setProgress(message);
     });
+    // Tick the diagnostic snapshot so the popover (if open) shows
+    // fresh "X seconds ago" timestamps and reconnect attempt counts
+    // as they advance.
+    const diagTick = window.setInterval(() => setDiag(getSseDiagnostics()), 1000);
 
     return () => {
       unsubscribeConnection();
       unsubscribeProgress();
+      window.clearInterval(diagTick);
       disconnectSSE();
     };
   }, []);
@@ -145,9 +199,24 @@ const GatewayAssistant = () => {
               </Text>
             </div>
             <Space>
-              <Tag color={connectionReady ? "green" : "orange"}>
-                {connectionReady ? "Connected" : "Connecting"}
-              </Tag>
+              {/* Click the tag to see WHY it's still "Connecting" — */}
+              {/* shows target URL, EventSource readyState, and last */}
+              {/* open/error timestamps. Useful in local-kind setups */}
+              {/* where the gateway isn't deployed and the indicator */}
+              {/* otherwise sits forever with no explanation. */}
+              <Popover
+                title="SSE connection diagnostic"
+                content={<ConnectionDiagnostic diag={diag} />}
+                trigger="click"
+                placement="bottomRight"
+              >
+                <Tag
+                  color={connectionReady ? "green" : "orange"}
+                  style={{ cursor: "pointer" }}
+                >
+                  {connectionReady ? "Connected" : "Connecting"}
+                </Tag>
+              </Popover>
               <Text type="secondary">
                 {user?.display_name || user?.email || "Authenticated user"}
               </Text>
