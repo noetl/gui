@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.5.0](https://github.com/noetl/gui/compare/v1.4.2...v1.5.0) (2026-05-04)
+
+### Features
+
+* **prompt:** bare route names work as `cd <route>` shortcuts ([#23](https://github.com/noetl/gui/issues/23)) ([6acf1c0](https://github.com/noetl/gui/commit/6acf1c02c2c65889c980ab2aa7e1558f83c97aaf)), closes [noetl/gui#19](https://github.com/noetl/gui/issues/19)
+
 ## [1.4.2](https://github.com/noetl/gui/compare/v1.4.1...v1.4.2) (2026-05-01)
 
 ### Bug Fixes
