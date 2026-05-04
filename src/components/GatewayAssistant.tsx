@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Alert, Button, Card, Descriptions, Input, Popover, Space, Tag, Typography } from "antd";
 import { useNavigate } from "react-router-dom";
+import apiService from "../services/api";
 import {
   connectSSE,
   disconnectSSE,
@@ -14,7 +15,78 @@ import {
   validateSession,
   type SseDiagnostics,
 } from "../services/gatewayAuth";
+import { resolveApiMode } from "../services/gatewayBaseUrl";
 import "../styles/Gateway.css";
+
+const AMADEUS_PLAYBOOK_PATH = "api_integration/amadeus_ai_api";
+
+// Direct-mode result shape — mirrors what executeGatewayPlaybook
+// returns so the UI's appendMessage call doesn't have to branch.
+type DirectExecutionResult = {
+  id: string;
+  executionId: string;
+  status: string;
+  textOutput: string;
+};
+
+function extractTextOutput(execution: any): string {
+  // Heuristic in priority order. Mirrors how PlaybookRunDialog
+  // surfaces an execution's "primary text" — the agent's end-step
+  // result.text, the result.text directly, the result if it's a
+  // string, or a compact JSON dump as last resort.
+  const result = execution?.result;
+  if (typeof result === "string") return result;
+  if (result?.text && typeof result.text === "string") return result.text;
+  if (result?.summary && typeof result.summary === "string") return result.summary;
+  if (result?.message && typeof result.message === "string") return result.message;
+  if (typeof execution?.text === "string") return execution.text;
+  return JSON.stringify(result || execution || {}, null, 2).slice(0, 4000);
+}
+
+async function executeDirectMode(
+  query: string,
+  onProgress: (message: string) => void,
+): Promise<DirectExecutionResult> {
+  // Direct mode: dispatch the amadeus playbook through /api/execute
+  // and poll the execution status until it reaches a terminal state.
+  // Same pattern as PlaybookRunDialog uses; no SSE involvement.
+  onProgress("Submitting playbook…");
+  const response = await apiService.executePlaybookWithPayload({
+    path: AMADEUS_PLAYBOOK_PATH,
+    workload: { query },
+  });
+  const executionId = response.execution_id;
+
+  // Poll for completion. 90s ceiling matches the backend's
+  // default playbook timeout for HTTP+postgres flows; bump if
+  // the amadeus playbook turns out to legitimately take longer.
+  const pollIntervalMs = 1500;
+  const maxPolls = Math.ceil(90_000 / pollIntervalMs);
+  let last: any = null;
+
+  for (let attempt = 0; attempt < maxPolls; attempt++) {
+    await new Promise((resolve) => window.setTimeout(resolve, pollIntervalMs));
+    last = await apiService.getExecution(executionId);
+    const status = String(last?.status || "").toLowerCase();
+    if (status === "completed" || status === "succeeded") {
+      return {
+        id: executionId,
+        executionId,
+        status: last?.status || "completed",
+        textOutput: extractTextOutput(last),
+      };
+    }
+    if (status === "failed" || status === "error" || status === "cancelled") {
+      throw new Error(
+        `Playbook ${last?.status || "failed"}: ${extractTextOutput(last).slice(0, 600)}`,
+      );
+    }
+    onProgress(`Polling execution ${executionId}… (${last?.status || "running"})`);
+  }
+  throw new Error(
+    `Playbook execution ${executionId} did not complete in ${Math.round(maxPolls * pollIntervalMs / 1000)}s`,
+  );
+}
 
 function formatTimestamp(ts: number | null): string {
   if (!ts) return "—";
@@ -111,10 +183,26 @@ const GatewayAssistant = () => {
   // every 1s while the popover is potentially visible — cheap snapshot
   // of in-memory state, no network calls.
   const [diag, setDiag] = useState<SseDiagnostics>(() => getSseDiagnostics());
+  // Cache the api mode at mount so the submit handler doesn't have
+  // to re-resolve env vars on every keystroke. Direct mode skips
+  // the SSE round-trip and dispatches via apiService instead — the
+  // gateway-only path otherwise blocks every submit on local kind
+  // setups where the gateway isn't deployed.
+  const apiMode = useMemo(() => resolveApiMode(), []);
   const user = useMemo(() => getUserInfo(), []);
 
   useEffect(() => {
-    // Auth is handled by parent AuthenticatedApp - just connect SSE
+    if (apiMode === "direct") {
+      // No gateway → no SSE → the chat is "ready" the moment the
+      // page mounts. Skip connectSSE entirely so the indicator
+      // doesn't churn through reconnect attempts against a noetl
+      // server that has no /events endpoint.
+      setConnectionReady(true);
+      setDiag(getSseDiagnostics());
+      return;
+    }
+
+    // Gateway mode: keep the existing SSE-driven flow.
     connectSSE();
 
     const unsubscribeConnection = subscribeConnection((connected) => {
@@ -135,7 +223,7 @@ const GatewayAssistant = () => {
       window.clearInterval(diagTick);
       disconnectSSE();
     };
-  }, []);
+  }, [apiMode]);
 
   const appendMessage = (message: ChatMessage) => {
     setMessages((previous) => {
@@ -151,7 +239,10 @@ const GatewayAssistant = () => {
       return;
     }
 
-    if (!connectionReady) {
+    // The "real-time connection" check only matters in gateway
+    // mode — direct mode dispatches via /api/execute and polls,
+    // so SSE readiness isn't a precondition.
+    if (apiMode === "gateway" && !connectionReady) {
       setError("Real-time connection is not ready yet. Please wait a moment.");
       return;
     }
@@ -163,7 +254,9 @@ const GatewayAssistant = () => {
     appendMessage({ id: messageId(), role: "user", text: trimmed });
 
     try {
-      const result = await executeGatewayPlaybook(trimmed);
+      const result = apiMode === "direct"
+        ? await executeDirectMode(trimmed, setProgress)
+        : await executeGatewayPlaybook(trimmed);
       appendMessage({
         id: messageId(),
         role: "assistant",
