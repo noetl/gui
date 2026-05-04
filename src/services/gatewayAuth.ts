@@ -37,6 +37,15 @@ let eventSource: EventSource | null = null;
 let clientId: string | null = null;
 let sseConnected = false;
 let reconnectAttempts = 0;
+// Diagnostic state — surfaced via getSseDiagnostics() so the GUI's
+// connection indicator can show what URL it's polling, the last
+// EventSource readyState, and the most recent open/error timestamps.
+// Useful in local-kind setups where the gateway isn't deployed and
+// the indicator otherwise stays "Connecting" with no explanation.
+let lastSseUrl: string | null = null;
+let lastOpenAt: number | null = null;
+let lastErrorAt: number | null = null;
+let lastErrorMessage: string | null = null;
 
 const pendingCallbacks = new Map<string, PendingCallback>();
 const progressListeners = new Set<(message: string) => void>();
@@ -374,10 +383,13 @@ function connectSSEInternal(): void {
     `${getGatewayBaseUrl()}/events?session_token=${encodeURIComponent(token)}` +
     (clientId ? `&client_id=${encodeURIComponent(clientId)}` : "");
 
+  lastSseUrl = url;
   eventSource = new EventSource(url);
 
   eventSource.onopen = () => {
     reconnectAttempts = 0;
+    lastOpenAt = Date.now();
+    lastErrorMessage = null;
   };
 
   eventSource.addEventListener("message", (event) => {
@@ -413,8 +425,16 @@ function connectSSEInternal(): void {
 
   eventSource.onerror = () => {
     sseConnected = false;
+    lastErrorAt = Date.now();
+    // EventSource onerror doesn't carry a reason; readyState tells us
+    // CONNECTING vs CLOSED. Capture both for the diagnostic popover.
+    const rs = eventSource ? eventSource.readyState : -1;
+    lastErrorMessage = rs === EventSource.CLOSED
+      ? "EventSource closed (server unreachable or connection refused)"
+      : "EventSource error (likely retrying)";
     notifyConnection(false);
     if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+      lastErrorMessage = `gave up after ${MAX_RECONNECT_ATTEMPTS} reconnect attempts`;
       pendingCallbacks.forEach((pending) => {
         window.clearTimeout(pending.timeoutId);
         pending.reject(new Error("SSE connection lost"));
@@ -460,6 +480,53 @@ export function isSSEConnected(): boolean {
     eventSource !== null &&
     eventSource.readyState === EventSource.OPEN
   );
+}
+
+/**
+ * Snapshot of the SSE connection state for the GUI's connection
+ * indicator and the prompt's `diag connection` verb.
+ *
+ * Surfaces what local-kind setups need: the URL we're hitting, the
+ * current `readyState` (0 connecting / 1 open / 2 closed / -1 no
+ * EventSource yet), and the last open / error timestamps + reason.
+ *
+ * The "Connecting" tag in the GatewayAssistant header otherwise sits
+ * forever on local kind without any indication of what's wrong.
+ */
+export type SseDiagnostics = {
+  url: string | null;
+  readyState: number;             // -1 if no EventSource yet
+  readyStateName: "no-event-source" | "connecting" | "open" | "closed";
+  connected: boolean;
+  reconnectAttempts: number;
+  maxReconnectAttempts: number;
+  lastOpenAt: number | null;
+  lastErrorAt: number | null;
+  lastErrorMessage: string | null;
+  clientId: string | null;
+  hasSessionToken: boolean;
+};
+
+export function getSseDiagnostics(): SseDiagnostics {
+  const rs = eventSource ? eventSource.readyState : -1;
+  const readyStateName =
+    rs === -1 ? "no-event-source" :
+    rs === EventSource.CONNECTING ? "connecting" :
+    rs === EventSource.OPEN ? "open" :
+    "closed";
+  return {
+    url: lastSseUrl,
+    readyState: rs,
+    readyStateName,
+    connected: isSSEConnected(),
+    reconnectAttempts,
+    maxReconnectAttempts: MAX_RECONNECT_ATTEMPTS,
+    lastOpenAt,
+    lastErrorAt,
+    lastErrorMessage,
+    clientId,
+    hasSessionToken: !!getSessionToken(),
+  };
 }
 
 export async function waitForSSEConnection(timeoutMs = 10000): Promise<void> {
