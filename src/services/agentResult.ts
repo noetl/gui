@@ -96,3 +96,40 @@ export function extractAgentText(execution: ExecutionData): string {
       : (execution as { result?: unknown }).result;
   return compactJson(fallbackSource, 2400);
 }
+
+/**
+ * Walk an ExecutionData looking for a ``render`` widget descriptor —
+ * the round-2 contract for "smart message" output (see
+ * sync/issues/2026-05-08-noetl-as-ai-os-token-architecture.md and
+ * components/widgets/types.ts). A playbook step opts in by emitting
+ * ``result.render = { type: "app:markdown" | ..., args: {...} }``.
+ *
+ * Returns the first ``render`` object found in execution.result, then
+ * each event's result/context in reverse chronological order. Returns
+ * undefined if no widget descriptor is present.
+ */
+export function extractAgentRender(execution: ExecutionData): Record<string, unknown> | undefined {
+  const findRender = (candidate: unknown, depth = 0): Record<string, unknown> | undefined => {
+    if (depth > 4) return undefined;
+    const item = asRecord(candidate);
+    if (!item) return undefined;
+    const direct = asRecord(item.render);
+    if (direct && typeof direct.type === "string") return direct;
+    for (const key of ["context", "data", "result", "args"]) {
+      const nested = findRender(item[key], depth + 1);
+      if (nested) return nested;
+    }
+    return undefined;
+  };
+
+  const candidates: unknown[] = [
+    (execution as { result?: unknown }).result,
+    ...((execution.events || []).map((event: any) => event.result).reverse()),
+    ...((execution.events || []).map((event: any) => event.context).reverse()),
+  ];
+  for (const candidate of candidates) {
+    const render = findRender(candidate);
+    if (render) return render;
+  }
+  return undefined;
+}
