@@ -5,6 +5,8 @@ import { ClearOutlined, EnterOutlined } from "@ant-design/icons";
 import type { InputRef } from "antd";
 import { apiService } from "../services/api";
 import { ExecutionData, PlaybookData } from "../types";
+import { WidgetRenderer } from "./widgets";
+import type { WidgetContent, WidgetMessageEvent } from "./widgets";
 
 type PromptTone = "input" | "output" | "error" | "success";
 
@@ -22,6 +24,12 @@ interface PromptEntry {
   text?: string;
   actions?: PromptAction[];
   collapsed?: boolean;
+  // Optional rich-render payload — adapted from
+  // mlflowio/chatui's MessageContent dispatch (see
+  // references/chatui/src/pages/Main/ChatArea/ChatMessage/MessageContent/MessageContent.tsx).
+  // Carried inline in the prompt history; renders alongside or in place
+  // of `text`/`actions` via WidgetRenderer.
+  render?: WidgetContent;
 }
 
 interface TerminalTable {
@@ -99,11 +107,13 @@ import {
   compactJson as _compactJson,
   asRecord as _asRecord,
   extractAgentPayload as _extractAgentPayload,
+  extractAgentRender as _extractAgentRender,
   extractAgentText as _extractAgentText,
 } from "../services/agentResult";
 
 const compactJson = _compactJson;
 const asRecord = _asRecord;
+const extractAgentRender = _extractAgentRender;
 
 function asStringList(value: unknown): string[] {
   if (Array.isArray(value)) {
@@ -614,6 +624,34 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
     if (action.command) {
       runCommand(action.command);
     }
+  };
+
+  // Bridges widget interactions (button click, form submit, dropdown
+  // change, ...) into the prompt. The convention adopted from chatui's
+  // WidgetMessageEvent is `{ event, key, value }`. We map a few common
+  // shapes into prompt actions:
+  //   - { key: "command", value: "<command-text>" } → runCommand(value)
+  //   - { key: "navigate", value: "/some/path" } → navigate(value)
+  // Anything else is logged into prompt history as an "output" entry so
+  // a playbook author can see what their widget emitted while wiring it
+  // up. Round 3 will widen this — e.g. AppForm.value (a Record) could
+  // become a payload for the next playbook the user runs.
+  const handleWidgetEvent = (widgetEvent: WidgetMessageEvent) => {
+    const { event, key, value } = widgetEvent;
+    if (key === "command" && typeof value === "string" && value.trim()) {
+      runCommand(value);
+      return;
+    }
+    if (key === "navigate" && typeof value === "string" && value.trim()) {
+      navigate(value);
+      setCwd(workspaceFromPath(value));
+      append({ tone: "success", text: `opened ${value}` });
+      return;
+    }
+    append({
+      tone: "output",
+      text: `widget ${event} :: key=${key} :: value=${compactJson(value)}`,
+    });
   };
 
   const resolvePlaybook = async (target: string): Promise<{ catalog_id?: string; path?: string; label: string }> => {
@@ -1170,6 +1208,7 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
       } else if (verb === "report") {
         if (!rest) throw new Error("usage: report <execution_id>");
         const execution = await apiService.getExecution(rest, { page_size: 20 });
+        const renderPayload = extractAgentRender(execution);
         append({
           tone: "output",
           text: [
@@ -1180,6 +1219,7 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
               : `result=${compactJson(execution.result)}`,
           ].join("\n"),
           actions: execution.path === KUBERNETES_AGENT_PLAYBOOK ? KUBERNETES_ACTIONS : undefined,
+          render: renderPayload as PromptEntry["render"],
         });
         navigate(`/execution/${execution.execution_id}`);
         setCwd(`/execution/${execution.execution_id}`);
@@ -1248,7 +1288,15 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
                 return (
                   <>
                     <div className="noetl-prompt-result-head">
-                      {table ? (
+                      {entry.render ? (
+                        <div className="noetl-prompt-structured noetl-prompt-widget">
+                          {visibleText && <span className="noetl-prompt-text">{visibleText}</span>}
+                          <WidgetRenderer
+                            content={entry.render}
+                            onWidgetEvent={handleWidgetEvent}
+                          />
+                        </div>
+                      ) : table ? (
                         <div className="noetl-prompt-structured">
                           {table.intro && <span className="noetl-prompt-text">{table.intro}</span>}
                           {renderTerminalTable(table, entry.collapsed)}
