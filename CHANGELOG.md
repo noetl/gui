@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.8.0](https://github.com/noetl/gui/compare/v1.7.0...v1.8.0) (2026-05-08)
+
+### Features
+
+* **gui:** chatui-aligned widget renderer for NoetlPrompt ([#26](https://github.com/noetl/gui/issues/26)) ([1eabe4d](https://github.com/noetl/gui/commit/1eabe4d7d9af18e1b4b9500ca2e59c670947cb40))
+
 ## [1.7.0](https://github.com/noetl/gui/compare/v1.6.0...v1.7.0) (2026-05-04)
 
 ### Features
