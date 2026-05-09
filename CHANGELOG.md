@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.1](https://github.com/noetl/gui/compare/v1.9.0...v1.9.1) (2026-05-09)
+
+### Bug Fixes
+
+* **gui:** pass catalog version from prompt run command ([#28](https://github.com/noetl/gui/issues/28)) ([179afb7](https://github.com/noetl/gui/commit/179afb773e80dd61d6c1978b2fce88094bbc46f1))
+
 ## [1.9.0](https://github.com/noetl/gui/compare/v1.8.0...v1.9.0) (2026-05-09)
 
 ### Features
