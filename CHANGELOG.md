@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.0](https://github.com/noetl/gui/compare/v1.8.0...v1.9.0) (2026-05-09)
+
+### Features
+
+* **gui:** rewrite localhost API base for LAN access + auto-render widgets after run ([#27](https://github.com/noetl/gui/issues/27)) ([5538954](https://github.com/noetl/gui/commit/55389544185b0f171d648133b8af30693b556355))
+
 ## [1.8.0](https://github.com/noetl/gui/compare/v1.7.0...v1.8.0) (2026-05-08)
 
 ### Features
