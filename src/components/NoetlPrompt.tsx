@@ -654,11 +654,11 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
     });
   };
 
-  const resolvePlaybook = async (target: string): Promise<{ catalog_id?: string; path?: string; label: string }> => {
+  const resolvePlaybook = async (target: string): Promise<{ catalog_id?: string; path?: string; version?: string; label: string }> => {
     const playbooks = await apiService.getPlaybooks();
     const match = playbooks.find((playbook) => playbook.catalog_id === target || playbook.path === target);
     if (match) {
-      return { catalog_id: match.catalog_id, path: match.path, label: match.path };
+      return { catalog_id: match.catalog_id, path: match.path, version: match.version, label: match.path };
     }
     return { path: target, label: target };
   };
@@ -1238,7 +1238,7 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
         const response = await apiService.executePlaybookWithPayload({
           catalog_id: playbook.catalog_id,
           path: playbook.catalog_id ? undefined : playbook.path,
-          version: "latest",
+          version: playbook.version,
           workload,
         });
         append({
