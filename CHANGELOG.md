@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.10.0](https://github.com/noetl/gui/compare/v1.9.1...v1.10.0) (2026-05-09)
+
+### Features
+
+* **gui:** travel verb in prompt + widget render in travel canvas ([#29](https://github.com/noetl/gui/issues/29)) ([fa3101c](https://github.com/noetl/gui/commit/fa3101c14b0b0bba09991a25f1d3aebb7c37b606))
+
 ## [1.9.1](https://github.com/noetl/gui/compare/v1.9.0...v1.9.1) (2026-05-09)
 
 ### Bug Fixes
