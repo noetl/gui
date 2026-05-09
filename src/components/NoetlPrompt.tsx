@@ -663,6 +663,44 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
     return { path: target, label: target };
   };
 
+  // Background watcher for `run` — addresses the "playbook executing
+  // but how would I see widgets?" UX gap captured in
+  // bridge/outbox/20260509-025240-widget-lan-handover-to-claude.md.
+  //
+  // Round 2 left widget rendering behind an explicit `report <execution_id>`
+  // step. This watcher polls the just-launched execution and, if it
+  // terminates with a `result.render` payload, auto-appends a fresh prompt
+  // entry with the rendered widget — so the user sees the widget without
+  // typing anything else. Polls every second for up to 60 seconds, then
+  // gives up silently (the user can still run `report <id>` themselves).
+  // Network blips during polling are swallowed so a transient gateway
+  // hiccup doesn't poison the prompt.
+  const watchExecutionForRender = async (executionId: string, label: string): Promise<void> => {
+    for (let i = 0; i < 60; i += 1) {
+      await new Promise((resolve) => window.setTimeout(resolve, 1000));
+      try {
+        const execution = await apiService.getExecution(executionId, { page_size: 20 });
+        if (TERMINAL_STATUSES.has(execution.status)) {
+          const renderPayload = extractAgentRender(execution);
+          if (renderPayload) {
+            append({
+              tone: execution.status === "completed" ? "success" : "output",
+              text: `${label} :: ${execution.status} (auto-rendered from execution ${executionId})`,
+              actions: [
+                { label: `report ${executionId}`, command: `report ${executionId}` },
+                { label: `open ${executionId}`, path: `/execution/${executionId}` },
+              ],
+              render: renderPayload as PromptEntry["render"],
+            });
+          }
+          return;
+        }
+      } catch {
+        // background poll — ignore network blips
+      }
+    }
+  };
+
   const discoverMcpWorkspaces = async (): Promise<TerminalWorkspace[]> => {
     const [agents, mcpResources] = await Promise.all([
       apiService.getAgentPlaybooks(),
@@ -1203,8 +1241,20 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
           version: "latest",
           workload,
         });
-        append({ tone: "success", text: `started ${playbook.label} :: execution=${response.execution_id}` });
+        append({
+          tone: "success",
+          text: `started ${playbook.label} :: execution=${response.execution_id}`,
+          actions: [
+            { label: `report ${response.execution_id}`, command: `report ${response.execution_id}` },
+            { label: `open ${response.execution_id}`, path: `/execution/${response.execution_id}` },
+          ],
+        });
         navigate(`/execution/${response.execution_id}`);
+        // Fire-and-forget: when the execution terminates, if it carries a
+        // `result.render` payload, the watcher appends a new prompt entry
+        // with the rendered widget. The user no longer has to remember to
+        // type `report <id>` to see widgets.
+        void watchExecutionForRender(response.execution_id, playbook.label);
       } else if (verb === "report") {
         if (!rest) throw new Error("usage: report <execution_id>");
         const execution = await apiService.getExecution(rest, { page_size: 20 });
