@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.10.4](https://github.com/noetl/gui/compare/v1.10.3...v1.10.4) (2026-05-09)
+
+### Bug Fixes
+
+* **gui:** stop widget button click propagation ([#33](https://github.com/noetl/gui/issues/33)) ([38c00ae](https://github.com/noetl/gui/commit/38c00ae58979d3e62bfb68345eedffd44d8c24d6))
+
 ## [1.10.3](https://github.com/noetl/gui/compare/v1.10.2...v1.10.3) (2026-05-09)
 
 ### Bug Fixes
