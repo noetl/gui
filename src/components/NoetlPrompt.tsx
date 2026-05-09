@@ -1272,14 +1272,23 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
         if (!rest) throw new Error("usage: report <execution_id>");
         const execution = await apiService.getExecution(rest, { page_size: 20 });
         const renderPayload = extractAgentRender(execution);
+        // When extractAgentRender finds a widget (typically because the
+        // playbook's tail step put a render dict at execution.result.render
+        // or in an event), the textual summary should reflect that the
+        // widget is rendered below — not show `result=-` if the GUI's
+        // getExecution response happens to project execution.result as
+        // empty. Use the render type as the summary line in that case.
+        const resultLine = execution.path === KUBERNETES_AGENT_PLAYBOOK
+          ? `output=${extractAgentText(execution)}`
+          : renderPayload
+            ? `render=${(renderPayload as { type?: string }).type || "widget"}`
+            : `result=${compactJson(execution.result)}`;
         append({
           tone: "output",
           text: [
             formatExecution(execution),
             `events=${execution.events?.length || 0}`,
-            execution.path === KUBERNETES_AGENT_PLAYBOOK
-              ? `output=${extractAgentText(execution)}`
-              : `result=${compactJson(execution.result)}`,
+            resultLine,
           ].join("\n"),
           actions: execution.path === KUBERNETES_AGENT_PLAYBOOK ? KUBERNETES_ACTIONS : undefined,
           render: renderPayload as PromptEntry["render"],
