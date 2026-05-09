@@ -36,6 +36,7 @@ export function AppButton({ args, onWidgetEvent }: WidgetProps<AppButtonArgs> & 
     <Button
       className="noetl-widget noetl-widget-button"
       type={antdType}
+      htmlType="button"
       danger={antdDanger}
       disabled={disabled}
       loading={forceLoading || loading}
