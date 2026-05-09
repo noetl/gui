@@ -41,7 +41,9 @@ export function AppButton({ args, onWidgetEvent }: WidgetProps<AppButtonArgs> & 
       disabled={disabled}
       loading={forceLoading || loading}
       style={width != null ? { width: typeof width === "number" ? `${width}px` : width } : undefined}
-      onClick={() => {
+      onClick={(clickEvent) => {
+        clickEvent.preventDefault();
+        clickEvent.stopPropagation();
         if (event && onWidgetEvent) {
           if (loadingDelay > 0) {
             setLoading(true);
