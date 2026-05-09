@@ -304,7 +304,7 @@ const GatewayAssistant = () => {
                 Travel Assistant
               </Title>
               <Text type="secondary">
-                Ask flight-search queries and execute playbook `api_integration/amadeus_ai_api`.
+                Ask travel queries — flights, locations, or help — and execute playbook `automation/agents/travel/runtime`. Results render as widgets below the chat bubble.
               </Text>
             </div>
             <Space>

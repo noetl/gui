@@ -27,7 +27,11 @@ type PendingCallback = {
 const SESSION_TOKEN_KEY = "session_token";
 const USER_INFO_KEY = "user_info";
 const DEV_SKIP_AUTH_TOKEN = "dev-skip-auth";
-const PLAYBOOK_NAME = "api_integration/amadeus_ai_api";
+// Updated for the flagship travel agent (v1.10.0). The legacy
+// api_integration/amadeus_ai_api playbook stays in repos/e2e as a
+// smoke fixture; the canvas (and prompt's `travel` verb) target the
+// new agent runtime which emits result.render widgets.
+const PLAYBOOK_NAME = "automation/agents/travel/runtime";
 
 const MAX_RECONNECT_ATTEMPTS = 5;
 const RECONNECT_DELAY_MS = 2000;
