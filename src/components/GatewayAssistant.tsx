@@ -409,14 +409,40 @@ const GatewayAssistant = () => {
             ))}
           </Space>
 
-          <Input.Search
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Ask about flights..."
-            enterButton="Send"
-            loading={submitting}
-            onSearch={onSubmit}
-          />
+          {/*
+            Wrap the search input in an explicit form whose onSubmit
+            calls preventDefault. Without this wrapper, in some
+            browsers the AntD Input.Search's internal Enter handler
+            still allows the underlying form-submit default to bubble,
+            which navigates the page to "/" — and the app router's
+            default-redirect rule (line 637-645 of main.tsx) sends
+            authenticated admins to /catalog. That's the symptom
+            captured in
+            bridge/outbox/20260509-065650-travel-render-tail-amber-to-green.result.json
+            phase 5: "Submitting from the canvas led back to /catalog
+            and no persisted canvas chat/widget was visible after
+            returning to /travel". The preventDefault keeps the user on
+            /travel so the chat state (and the widget below the chat
+            bubble) survive.
+          */}
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (query.trim() && !submitting) {
+                onSubmit(query);
+              }
+            }}
+            style={{ width: "100%" }}
+          >
+            <Input.Search
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Ask about flights..."
+              enterButton="Send"
+              loading={submitting}
+              onSearch={onSubmit}
+            />
+          </form>
         </Space>
       </Card>
     </div>
