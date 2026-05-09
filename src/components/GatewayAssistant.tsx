@@ -146,6 +146,7 @@ type ChatMessage = {
   id: string;
   role: "user" | "assistant";
   text: string;
+  sourcePrompt?: string;
   status?: string;
   executionId?: string;
   // Optional widget tree carried from the assistant's execution. Same
@@ -185,6 +186,27 @@ const saveMessages = (messages: ChatMessage[]) => {
     // Ignore storage errors
   }
 };
+
+function commandToCanvasPrompt(command: string, message: ChatMessage): string | null {
+  const trimmed = command.trim();
+  if (!trimmed) return null;
+
+  // Widget buttons use the same command vocabulary as NoetlPrompt.
+  // The canvas does not implement the prompt command parser; for rerun
+  // buttons it should resubmit the original travel query in-place.
+  if (/^rerun\s+\S+/i.test(trimmed)) {
+    return message.sourcePrompt || message.text || null;
+  }
+
+  // Allow future travel widgets to emit a full prompt command while
+  // still keeping this surface focused on the travel agent.
+  const travelMatch = trimmed.match(/^travel\s+(.+)$/i);
+  if (travelMatch?.[1]) {
+    return travelMatch[1];
+  }
+
+  return trimmed;
+}
 
 const GatewayAssistant = () => {
   const navigate = useNavigate();
@@ -276,6 +298,7 @@ const GatewayAssistant = () => {
         id: messageId(),
         role: "assistant",
         text: result.textOutput || "No response returned by the playbook.",
+        sourcePrompt: trimmed,
         status: result.status,
         executionId: result.executionId || result.id,
         render: (result as DirectExecutionResult).render,
@@ -370,12 +393,10 @@ const GatewayAssistant = () => {
                           // different intent without leaving the canvas.
                           const { key, value } = widgetEvent;
                           if (key === "command" && typeof value === "string") {
-                            // The travel agent emits `rerun <id>` /
-                            // `report <id>` / `fix <id>` commands. The
-                            // canvas just resubmits the original textual
-                            // query so the agent picks up where it left
-                            // off — we don't need a prompt parser here.
-                            void onSubmit(message.text || value);
+                            const prompt = commandToCanvasPrompt(value, message);
+                            if (prompt) {
+                              void onSubmit(prompt);
+                            }
                           } else if (key === "navigate" && typeof value === "string") {
                             navigate(value);
                           }
