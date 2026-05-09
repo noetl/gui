@@ -16,9 +16,16 @@ import {
   type SseDiagnostics,
 } from "../services/gatewayAuth";
 import { resolveApiMode } from "../services/gatewayBaseUrl";
+import { extractAgentRender } from "../services/agentResult";
+import { WidgetRenderer } from "./widgets";
+import type { WidgetContent, WidgetMessageEvent } from "./widgets";
 import "../styles/Gateway.css";
 
-const AMADEUS_PLAYBOOK_PATH = "api_integration/amadeus_ai_api";
+// New: travel agent playbook (automation/agents/travel/runtime) emits
+// result.render so the assistant can surface widgets alongside text.
+// The legacy api_integration/amadeus_ai_api playbook stays in repos/e2e
+// as a smoke fixture; the canvas now points at the agent runtime.
+const TRAVEL_PLAYBOOK_PATH = "automation/agents/travel/runtime";
 
 // Direct-mode result shape — mirrors what executeGatewayPlaybook
 // returns so the UI's appendMessage call doesn't have to branch.
@@ -27,6 +34,7 @@ type DirectExecutionResult = {
   executionId: string;
   status: string;
   textOutput: string;
+  render?: WidgetContent;
 };
 
 function extractTextOutput(execution: any): string {
@@ -52,7 +60,7 @@ async function executeDirectMode(
   // Same pattern as PlaybookRunDialog uses; no SSE involvement.
   onProgress("Submitting playbook…");
   const response = await apiService.executePlaybookWithPayload({
-    path: AMADEUS_PLAYBOOK_PATH,
+    path: TRAVEL_PLAYBOOK_PATH,
     workload: { query },
   });
   const executionId = response.execution_id;
@@ -69,11 +77,13 @@ async function executeDirectMode(
     last = await apiService.getExecution(executionId);
     const status = String(last?.status || "").toLowerCase();
     if (status === "completed" || status === "succeeded") {
+      const renderPayload = extractAgentRender(last);
       return {
         id: executionId,
         executionId,
         status: last?.status || "completed",
         textOutput: extractTextOutput(last),
+        render: renderPayload as WidgetContent | undefined,
       };
     }
     if (status === "failed" || status === "error" || status === "cancelled") {
@@ -138,6 +148,11 @@ type ChatMessage = {
   text: string;
   status?: string;
   executionId?: string;
+  // Optional widget tree carried from the assistant's execution. Same
+  // shape as NoetlPrompt's PromptEntry.render. Round 2.x.5 routes the
+  // travel agent's result.render into the canvas so we get rich
+  // output here alongside the audit-trail text.
+  render?: WidgetContent;
 };
 
 const suggestions = [
@@ -263,6 +278,7 @@ const GatewayAssistant = () => {
         text: result.textOutput || "No response returned by the playbook.",
         status: result.status,
         executionId: result.executionId || result.id,
+        render: (result as DirectExecutionResult).render,
       });
     } catch (submitError) {
       const detail = submitError instanceof Error ? submitError.message : "Failed to execute playbook";
@@ -340,6 +356,33 @@ const GatewayAssistant = () => {
               <div key={message.id} className={`gateway-message ${message.role}`}>
                 <div className="gateway-message-content">
                   <Text>{message.text}</Text>
+                  {message.render && (
+                    <div className="gateway-message-widget" style={{ marginTop: 8 }}>
+                      <WidgetRenderer
+                        content={message.render}
+                        onWidgetEvent={(widgetEvent: WidgetMessageEvent) => {
+                          // Buttons emitted by the travel agent (e.g. "rerun
+                          // this search") use event.key='command' with a
+                          // prompt-style value. The travel canvas doesn't
+                          // run prompt commands; we route command-style
+                          // widget events into a fresh chat submission so
+                          // the user can retry a search or surface a
+                          // different intent without leaving the canvas.
+                          const { key, value } = widgetEvent;
+                          if (key === "command" && typeof value === "string") {
+                            // The travel agent emits `rerun <id>` /
+                            // `report <id>` / `fix <id>` commands. The
+                            // canvas just resubmits the original textual
+                            // query so the agent picks up where it left
+                            // off — we don't need a prompt parser here.
+                            void onSubmit(message.text || value);
+                          } else if (key === "navigate" && typeof value === "string") {
+                            navigate(value);
+                          }
+                        }}
+                      />
+                    </div>
+                  )}
                   {(message.executionId || message.status) && (
                     <div className="gateway-message-meta">
                       {message.executionId && <Text type="secondary">Execution: {message.executionId}</Text>}

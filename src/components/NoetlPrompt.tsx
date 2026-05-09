@@ -879,6 +879,12 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
             `tools=${tools.length}`,
           ].join("\n"),
         actions: ok ? workspace.actions : [{ label: `open ${execution.execution_id}`, path: `/execution/${execution.execution_id}` }],
+        // Round 2.x.1: surface widgets emitted by the MCP agent's status
+        // playbook output. extractAgentRender returns undefined when the
+        // playbook didn't emit a render descriptor, so kubernetes mcp
+        // playbooks (which don't currently emit one) keep their plain
+        // text output.
+        render: extractAgentRender(execution) as PromptEntry["render"],
       });
     } else if (normalized === "tools") {
       const execution = await runMcpAgent(workspace, {
@@ -1000,6 +1006,9 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
         { label: `open ${execution.execution_id}`, path: `/execution/${execution.execution_id}` },
         ...workspace.actions.slice(0, 5),
       ],
+      // Round 2.x.1: a Kubernetes tool result that emits result.render
+      // (e.g. a custom diagnose tool) shows the widget inline.
+      render: extractAgentRender(execution) as PromptEntry["render"],
     });
   };
 
@@ -1032,6 +1041,9 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
         { label: `open ${execution.execution_id}`, path: `/execution/${execution.execution_id}` },
         ...workspace.actions.slice(0, 5),
       ],
+      // Round 2.x.1: generic MCP tool calls (`call <tool>`) that emit
+      // result.render render the widget inline.
+      render: extractAgentRender(execution) as PromptEntry["render"],
     });
   };
 
@@ -1121,6 +1133,7 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
               "fix <execution_id>              produce a diagnostic report",
               "rerun <execution_id> [json]     rerun an execution",
               "stop <execution_id>             stop a running execution",
+              "travel <query>                  natural-language travel agent (flights/locations + widgets)",
               "mcp discover                    discover registered MCP terminal scopes",
               "k8s pods|ns|events|deploy|svc   query Kubernetes if its agent is registered",
               "clear                           clear prompt history",
@@ -1281,12 +1294,51 @@ const NoetlPrompt: React.FC<NoetlPromptProps> = ({ className }) => {
           include_playbook_content: true,
         });
         append({ tone: "output", text: compactJson(report, 1800) });
+      } else if (verb === "travel") {
+        // `travel <natural-language query>` — flagship demo verb.
+        // Dispatches the travel agent playbook
+        // (automation/agents/travel/runtime) which routes via AI provider
+        // intent classification → Amadeus and emits result.render. The
+        // round-2.x watcher auto-surfaces the widget when it terminates.
+        if (!rest) throw new Error("usage: travel <natural-language query>");
+        // Optional: `travel --provider <name> <query>` to switch AI provider.
+        let provider: string | undefined;
+        let query = rest;
+        const providerMatch = query.match(/^--provider\s+([\w-]+)\s+(.+)$/);
+        if (providerMatch) {
+          provider = providerMatch[1];
+          query = providerMatch[2];
+        }
+        const response = await apiService.executePlaybookWithPayload({
+          path: "automation/agents/travel/runtime",
+          workload: provider ? { query, ai_provider: provider } : { query },
+        });
+        append({
+          tone: "success",
+          text: `started travel agent :: execution=${response.execution_id}`,
+          actions: [
+            { label: `report ${response.execution_id}`, command: `report ${response.execution_id}` },
+            { label: `open ${response.execution_id}`, path: `/execution/${response.execution_id}` },
+          ],
+        });
+        navigate(`/execution/${response.execution_id}`);
+        void watchExecutionForRender(response.execution_id, "travel agent");
       } else if (verb === "rerun") {
         const [executionId = "", ...payloadParts] = restParts;
         if (!executionId) throw new Error("usage: rerun <execution_id> [json]");
         const response = await apiService.rerunExecution(executionId, parseWorkload(payloadParts.join(" ")));
-        append({ tone: "success", text: `rerun started :: execution=${response.execution_id}` });
+        append({
+          tone: "success",
+          text: `rerun started :: execution=${response.execution_id}`,
+          actions: [
+            { label: `report ${response.execution_id}`, command: `report ${response.execution_id}` },
+            { label: `open ${response.execution_id}`, path: `/execution/${response.execution_id}` },
+          ],
+        });
         navigate(`/execution/${response.execution_id}`);
+        // Same auto-render watcher as `run` — a rerun that emits a
+        // render payload surfaces the widget inline once it terminates.
+        void watchExecutionForRender(response.execution_id, `rerun ${executionId}`);
       } else if (verb === "stop") {
         if (!rest) throw new Error("usage: stop <execution_id>");
         await apiService.stopExecution(rest);
