@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.10.2](https://github.com/noetl/gui/compare/v1.10.1...v1.10.2) (2026-05-09)
+
+### Bug Fixes
+
+* **gui:** canvas form-submit preventDefault + report shows render type when widget present ([#31](https://github.com/noetl/gui/issues/31)) ([bfa0b90](https://github.com/noetl/gui/commit/bfa0b90d83ea90498f802ce7c2991296452ee5c4))
+
 ## [1.10.1](https://github.com/noetl/gui/compare/v1.10.0...v1.10.1) (2026-05-09)
 
 ### Bug Fixes
