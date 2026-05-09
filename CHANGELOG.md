@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.10.3](https://github.com/noetl/gui/compare/v1.10.2...v1.10.3) (2026-05-09)
+
+### Bug Fixes
+
+* **gui:** keep canvas widget command reruns in place ([#32](https://github.com/noetl/gui/issues/32)) ([c79ae30](https://github.com/noetl/gui/commit/c79ae3001550c966b79c9dc465e01008c2842413))
+
 ## [1.10.2](https://github.com/noetl/gui/compare/v1.10.1...v1.10.2) (2026-05-09)
 
 ### Bug Fixes
