@@ -12,6 +12,16 @@ const VALIDATION_RULES: Record<string, RegExp> = {
   phone: /^\+?\d[\d\s\-()]{6,}$/,
 };
 
+export function resolveFormButtonEventValue(rawValue: unknown, values: Record<string, string>): unknown {
+  if (typeof rawValue === "string") {
+    return rawValue.replace(/\{(\w+)\}/g, (_match, fieldId: string) => {
+      const fieldValue = values[fieldId];
+      return fieldValue !== undefined && fieldValue !== "" ? String(fieldValue) : "";
+    });
+  }
+  return rawValue ?? values;
+}
+
 export function AppForm({ args, onWidgetEvent }: WidgetProps<AppFormArgs> & { onWidgetEvent?: OnWidgetEvent }) {
   const { fields = [], buttons = [{ text: "Submit" }] } = args || ({} as AppFormArgs);
   const [values, setValues] = useState<Record<string, string>>(
@@ -58,7 +68,11 @@ export function AppForm({ args, onWidgetEvent }: WidgetProps<AppFormArgs> & { on
               onClick={() => {
                 if (!onWidgetEvent) return;
                 const eventName = button.event?.key || "onFormSubmit";
-                onWidgetEvent({ event: "onFormSubmit", key: eventName, value: button.event?.value ?? values });
+                onWidgetEvent({
+                  event: "onFormSubmit",
+                  key: eventName,
+                  value: resolveFormButtonEventValue(button.event?.value, values),
+                });
               }}
             >
               {button.text}
