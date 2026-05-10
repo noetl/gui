@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.11.0](https://github.com/noetl/gui/compare/v1.10.4...v1.11.0) (2026-05-10)
+
+### Features
+
+* **widgets:** app:form button template substitution with {fieldId} placeholders ([74f97f9](https://github.com/noetl/gui/commit/74f97f9a8dfd0ff3a9003a01718452027ab069f3))
+
 ## [1.10.4](https://github.com/noetl/gui/compare/v1.10.3...v1.10.4) (2026-05-09)
 
 ### Bug Fixes
