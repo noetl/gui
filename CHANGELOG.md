@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.11.1](https://github.com/noetl/gui/compare/v1.11.0...v1.11.1) (2026-06-10)
+
+### Bug Fixes
+
+* **gui:** recover credential View/Edit for pre-wallet (un-decryptable) records ([#36](https://github.com/noetl/gui/issues/36)) ([f5d43b6](https://github.com/noetl/gui/commit/f5d43b6e474139ed26cc756bb2f8dd80cced5b41))
+
 ## [1.11.0](https://github.com/noetl/gui/compare/v1.10.4...v1.11.0) (2026-05-10)
 
 ### Features
