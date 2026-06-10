@@ -17,6 +17,23 @@ npm run dev
 
 Default dev URL: `http://localhost:3001`
 
+### Against a local kind cluster (direct mode, no gateway)
+
+The default `npm run dev` targets the gateway at `http://localhost:8090`.
+A local kind cluster typically runs only `noetl-server-rust` (+ worker)
+with **no gateway**, exposed on `http://localhost:8082`.  Use the
+`dev:kind` script to talk straight to the server and skip the Auth0
+login flow:
+
+```bash
+npm run dev:kind
+# = VITE_API_MODE=direct VITE_ALLOW_SKIP_AUTH=true VITE_API_BASE_URL=http://localhost:8082 vite
+```
+
+Then open `http://localhost:3001`.  Requires the server reachable at
+`localhost:8082` (the standard kind port mapping); confirm with
+`curl http://localhost:8082/api/health`.
+
 ## Build
 
 ```bash
