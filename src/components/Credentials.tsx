@@ -41,6 +41,22 @@ const { Title, Text } = Typography;
 const { Search, TextArea } = Input;
 const { TabPane } = Tabs;
 
+// Extract the server-provided error string (the NoETL server returns
+// `{ "error": "...", "status": N }`) falling back to the axios message.
+const getApiErrorMessage = (err: any): string =>
+    err?.response?.data?.error || err?.message || "Unknown error";
+
+// A pre-Secrets-Wallet credential (noetl/ai-meta#61) was sealed under the old
+// static encryption key; the current envelope wallet can't unwrap it and the
+// server answers `include_data=true` with `500 Decryption failed: aead::Error`.
+// Storage is forward-only — such a record can't be displayed and must be
+// re-entered + re-saved to re-seal under the current wallet.
+const isDecryptFailure = (err: any): boolean => {
+    const status = err?.response?.status;
+    const msg = String(err?.response?.data?.error || "");
+    return status === 500 && /decrypt|aead/i.test(msg);
+};
+
 const Credentials: React.FC = () => {
     const { setActions: setViewActions, clearActions: clearViewActions } = useViewToolbar();
     const [credentials, setCredentials] = useState<CredentialData[]>([]);
@@ -55,6 +71,10 @@ const Credentials: React.FC = () => {
     const [modalVisible, setModalVisible] = useState(false);
     const [modalMode, setModalMode] = useState<"create" | "edit">("create");
     const [editingCredential, setEditingCredential] = useState<CredentialData | null>(null);
+    // Set when an Edit couldn't load the stored secret data (e.g. a pre-wallet
+    // credential the server can no longer decrypt). The modal still opens with
+    // metadata so the user can re-enter the secret and re-save it.
+    const [editDataLoadError, setEditDataLoadError] = useState<string | null>(null);
     const [form] = Form.useForm();
 
     // Input mode state
@@ -181,7 +201,15 @@ const Credentials: React.FC = () => {
                 setVisibleDataIds(newVisibleIds);
             } catch (err) {
                 console.error("Failed to fetch credential data:", err);
-                message.error("Failed to load credential data.");
+                if (isDecryptFailure(err)) {
+                    message.error(
+                        "This credential was stored under a previous encryption key and " +
+                        "can't be decrypted. Use Edit to re-enter and re-save it under the " +
+                        "current wallet.",
+                    );
+                } else {
+                    message.error(`Failed to load credential data: ${getApiErrorMessage(err)}`);
+                }
             }
         }
     };
@@ -218,6 +246,7 @@ const Credentials: React.FC = () => {
         setInputMode("form");
         setJsonInput("");
         setUploadFile(null);
+        setEditDataLoadError(null);
         form.resetFields();
         setModalVisible(true);
     }, [form]);
@@ -226,6 +255,7 @@ const Credentials: React.FC = () => {
         setModalMode("edit");
         setEditingCredential(credential);
         setInputMode("form");
+        setEditDataLoadError(null);
 
         // Fetch full credential data for editing
         try {
@@ -240,7 +270,29 @@ const Credentials: React.FC = () => {
             setModalVisible(true);
         } catch (err) {
             console.error("Failed to fetch credential for editing:", err);
-            message.error("Failed to load credential data.");
+            // Recovery path: the secret data couldn't be loaded (a pre-wallet
+            // credential the server can't decrypt, or a transient fetch error).
+            // Open the modal anyway with the metadata we already have from the
+            // list row so the user can re-enter the secret and re-save — the
+            // POST re-seals it under the current wallet. The data field is left
+            // empty and stays required, forcing a deliberate re-entry.
+            form.setFieldsValue({
+                name: credential.name,
+                type: credential.type,
+                description: credential.description,
+                tags: credential.tags?.join(", ") || "",
+                data: "",
+            });
+            setEditDataLoadError(
+                isDecryptFailure(err)
+                    ? "The stored secret for this credential could not be decrypted — it was " +
+                      "saved under a previous encryption key (before the Secrets Wallet " +
+                      "migration). Re-enter the credential data below and save to re-seal it " +
+                      "under the current wallet. Name and type are preserved."
+                    : `The stored secret data could not be loaded (${getApiErrorMessage(err)}). ` +
+                      "Re-enter the credential data below and save to overwrite it.",
+            );
+            setModalVisible(true);
         }
     };
 
@@ -293,13 +345,14 @@ const Credentials: React.FC = () => {
                 `Credential "${credentialData.name}" ${modalMode === "edit" ? "updated" : "created"} successfully.`
             );
             setModalVisible(false);
+            setEditDataLoadError(null);
             fetchCredentials();
         } catch (err: any) {
             console.error("Failed to save credential:", err);
             if (err instanceof SyntaxError) {
                 message.error("Invalid JSON format. Please check your input.");
             } else {
-                message.error(err.message || "Failed to save credential.");
+                message.error(getApiErrorMessage(err) || "Failed to save credential.");
             }
         }
     };
@@ -307,6 +360,7 @@ const Credentials: React.FC = () => {
     const handleModalCancel = () => {
         setModalVisible(false);
         setEditingCredential(null);
+        setEditDataLoadError(null);
         form.resetFields();
         setJsonInput("");
         setUploadFile(null);
@@ -577,6 +631,15 @@ const Credentials: React.FC = () => {
             >
                 <Tabs activeKey={inputMode} onChange={(key) => setInputMode(key as any)}>
                     <TabPane tab="Form" key="form">
+                        {editDataLoadError && (
+                            <Alert
+                                message="Existing secret could not be loaded"
+                                description={editDataLoadError}
+                                type="warning"
+                                showIcon
+                                className="credentials-edit-warning"
+                            />
+                        )}
                         <Form form={form} layout="vertical">
                             <Form.Item
                                 name="name"
