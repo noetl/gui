@@ -1,86 +1,96 @@
 /**
- * POST /api/waitlist — store one waitlist signup in Cloudflare KV.
+ * POST /api/waitlist — store one waitlist registration in Cloudflare KV.
  *
- * Binding: WAITLIST (KV namespace `noetl-ai-waitlist`).
+ * Binding: WAITLIST (KV namespace `noetl-ai-waitlist`). Key: `signup:<id>`.
  *
- * Privacy posture, deliberate and narrow:
- *   - Only the five fields the questionnaire asks for are persisted. Anything
- *     else in the body is dropped rather than stored "just in case".
- *   - No IP address, no user agent, no cookie, no analytics identifier.
- *   - Field lengths are capped so a paste cannot turn this into a file store.
+ * The questionnaire is mostly enumerated so the result is analysable:
+ * company_size, industry, role, scale, timeline, hosting and source are all
+ * closed sets, `domains` is a multi-select, and only `use_case` and `stack`
+ * are free text — the two places where an open answer genuinely beats a menu.
  *
- * Honesty posture: this endpoint either stores the record and says so, or
- * fails loudly. It never returns ok for a write that did not happen — the
- * page tells the visitor they are on the list based on this response.
+ * ⚠ UPSERT. A record is written as soon as the visitor has given a name and a
+ * work email, with status "partial", and updated in place when they finish.
+ * Thirteen questions means some people stop at nine; without this, every one
+ * of those is data we asked a real person for and then discarded. The client
+ * sends back the id it was given, and we only honour ids of our own shape.
+ *
+ * ⚠ SCOPE: market intent only. Nothing here asks for health, financial or
+ * otherwise sensitive data, and nothing here should start.
  */
+import { json, str, list, looksLikeEmail, idMatches, newId, normStatus } from "./_store.js";
 
-const LIMITS = { name: 120, email: 254, domain: 64, use_case: 1000, org: 160 };
-
-const json = (obj, status = 200) =>
-  new Response(JSON.stringify(obj), {
-    status,
-    headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" },
-  });
-
-const clean = (value, max) =>
-  typeof value === "string" ? value.trim().slice(0, max) : "";
-
-// Deliberately permissive: this gate exists to catch typos, not to adjudicate
-// which addresses are real. Rejecting valid-but-unusual addresses would lose
-// signups for no benefit.
-const looksLikeEmail = (v) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v);
+const CAP = {
+  name: 120, email: 254, role: 80, company: 160, company_size: 32,
+  industry: 80, use_case: 1200, stack: 600, scale: 48, timeline: 48,
+  hosting: 48, source: 64,
+};
 
 export async function onRequestPost(context) {
   const { request, env } = context;
 
   if (!env.WAITLIST) {
-    // Misconfiguration must be loud. A missing binding silently dropping
+    // Misconfiguration must be loud: a missing binding that silently dropped
     // signups is the exact failure this whole page depends on not having.
     return json({ ok: false, error: "storage not configured" }, 500);
   }
 
   let body;
-  try {
-    body = await request.json();
-  } catch {
-    return json({ ok: false, error: "invalid JSON body" }, 400);
-  }
+  try { body = await request.json(); }
+  catch { return json({ ok: false, error: "invalid JSON body" }, 400); }
   if (!body || typeof body !== "object") {
     return json({ ok: false, error: "expected a JSON object" }, 400);
   }
 
+  const status = normStatus(body.status);
+
   const record = {
-    name: clean(body.name, LIMITS.name),
-    email: clean(body.email, LIMITS.email),
-    domain: clean(body.domain, LIMITS.domain),
-    use_case: clean(body.use_case, LIMITS.use_case),
-    org: clean(body.org, LIMITS.org),
+    name: str(body.name, CAP.name),
+    email: str(body.email, CAP.email),
+    role: str(body.role, CAP.role),
+    company: str(body.company, CAP.company),
+    company_size: str(body.company_size, CAP.company_size),
+    industry: str(body.industry, CAP.industry),
+    domains: list(body.domains),
+    use_case: str(body.use_case, CAP.use_case),
+    stack: str(body.stack, CAP.stack),
+    scale: str(body.scale, CAP.scale),
+    timeline: str(body.timeline, CAP.timeline),
+    hosting: str(body.hosting, CAP.hosting),
+    source: str(body.source, CAP.source),
   };
 
+  // Email is the one hard requirement — it is both the contact route and the
+  // de-duplication key a human would use when reading these back.
   if (!record.email || !looksLikeEmail(record.email)) {
     return json({ ok: false, error: "a valid email is required" }, 400);
   }
 
-  const id = `wl_${Date.now().toString(36)}_${crypto.randomUUID().slice(0, 8)}`;
+  const id = idMatches(body.id, "wl") ? body.id : newId("wl");
+  const now = new Date().toISOString();
+
+  // Preserve the original arrival time across the partial -> complete update,
+  // so "when did this lead arrive" stays answerable.
+  let received_at = now;
+  try {
+    const prior = await env.WAITLIST.get(`signup:${id}`, "json");
+    if (prior && prior.received_at) received_at = prior.received_at;
+  } catch { /* first write, or unreadable — `now` is the right answer */ }
+
   const stored = {
-    id,
-    received_at: new Date().toISOString(),
-    source: "noetl.ai",
-    ...record,
+    id, status, received_at, updated_at: now, source_site: "noetl.ai", ...record,
   };
 
   try {
     await env.WAITLIST.put(`signup:${id}`, JSON.stringify(stored));
-  } catch (err) {
+  } catch {
     return json({ ok: false, error: "could not store signup" }, 502);
   }
 
-  // Echo only the reference. The visitor already knows what they typed, and
-  // reflecting the stored record back gives an attacker a free read oracle.
-  return json({ ok: true, id });
+  // Echo only the reference: the visitor knows what they typed, and reflecting
+  // the stored record back would hand an attacker a free read oracle.
+  return json({ ok: true, id, status });
 }
 
-/** Anything other than POST is a mistake worth naming rather than 404-ing. */
 export async function onRequest(context) {
   if (context.request.method === "POST") return onRequestPost(context);
   return json({ ok: false, error: "POST only" }, 405);

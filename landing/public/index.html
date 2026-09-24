@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NoETL — automation playbooks, coming January 2027</title>
+<meta name="description" content="NoETL runs declarative playbooks across travel, trading, healthcare, call centre and SRE workloads. Coming January 2027 — try the simulated demo and join the waitlist." />
+<meta name="robots" content="index, follow" />
+<link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="top">
+  <div class="wrap top-inner">
+    <div class="brand">
+      <span class="mark" aria-hidden="true">◆</span>
+      <span class="brand-name">NoETL</span>
+    </div>
+    <nav class="top-nav" aria-label="External links">
+      <a href="https://github.com/noetl/noetl" rel="noopener">GitHub</a>
+      <a href="https://github.com/noetl/noetl/wiki" rel="noopener">Wiki</a>
+      <a href="https://noetl.dev" rel="noopener">Docs</a>
+      <a href="https://noetl.io" rel="noopener">noetl.io</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <section class="hero wrap">
+    <p class="eyebrow" role="note">Coming soon — January 2027</p>
+    <h1>Playbooks that actually say what they do.</h1>
+    <p class="lede">
+      NoETL runs declarative, versioned playbooks — a sequence of steps, each bound to a
+      real tool — with every command and result recorded as an event you can read back.
+      The same shape works for an itinerary, a trading screen, a triage queue or an
+      incident runbook.
+    </p>
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="#demo">Try the simulated demo</a>
+      <a class="btn" href="#waitlist">Join the waitlist</a>
+    </div>
+    <p class="hero-note">
+      NoETL is not generally available yet. Everything on this page is a
+      <strong>simulation</strong> — it runs entirely in your browser and touches no live
+      system.
+    </p>
+  </section>
+
+  <!-- ─────────────── DEMO ─────────────── -->
+  <section class="section wrap" id="demo">
+    <div class="section-head">
+      <h2>Seven showcases, one shape</h2>
+      <span class="sim-badge" title="Nothing here executes. All steps and outputs are canned and run in your browser.">demo — simulated</span>
+    </div>
+    <p class="section-sub">
+      Pick a domain, then step through the playbook. The lifecycle shown below mirrors how a
+      real NoETL execution is recorded — a command is issued, claimed by a worker, completed,
+      and the next step is entered — but nothing is executed and no backend is contacted.
+      <strong>Quantum</strong> is the exception: it opens the live saqbit demo in a new tab
+      rather than simulating anything here.
+    </p>
+
+    <div class="demo">
+      <div class="domain-tabs" role="tablist" aria-label="Demo domains"></div>
+
+      <div class="demo-body">
+        <div class="demo-meta">
+          <div>
+            <h3 class="demo-title"></h3>
+            <p class="demo-desc"></p>
+          </div>
+          <div class="demo-controls">
+            <button class="btn btn-primary btn-run" type="button">Run playbook</button>
+            <button class="btn btn-step" type="button">Step</button>
+            <button class="btn btn-reset" type="button">Reset</button>
+          </div>
+        </div>
+
+        <section class="pane agents-pane" aria-labelledby="ag-h" hidden>
+          <div class="pane-head">
+            <h4 id="ag-h">agent cards — A2A discovery</h4>
+            <span class="pane-tag pane-tag-sim">simulated</span>
+          </div>
+          <div class="agents"></div>
+          <p class="mesh-rule" hidden></p>
+          <p class="mesh-more-wrap"><a class="mesh-more" href="#" rel="noopener" hidden></a></p>
+        </section>
+
+        <div class="demo-grid">
+          <section class="pane" aria-labelledby="pb-h">
+            <div class="pane-head"><h4 id="pb-h">playbook.yaml</h4><span class="pane-tag">source</span></div>
+            <pre class="yaml"><code></code></pre>
+          </section>
+
+          <section class="pane" aria-labelledby="ev-h">
+            <div class="pane-head"><h4 id="ev-h">execution events</h4><span class="pane-tag pane-tag-sim">simulated</span></div>
+            <ol class="events" aria-live="polite"></ol>
+          </section>
+        </div>
+
+        <section class="pane result-pane" aria-labelledby="res-h" hidden>
+          <div class="pane-head"><h4 id="res-h">result</h4><span class="pane-tag pane-tag-sim">canned</span></div>
+          <div class="result"></div>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────── WAITLIST ─────────────── -->
+  <section class="section wrap" id="waitlist">
+    <div class="section-head"><h2>Join the waitlist</h2></div>
+    <p class="section-sub">
+      Thirteen short questions, mostly one tap. We use this to tell you when NoETL
+      opens and to work out which domains to build first — nothing else, and no
+      sharing. Market intent only: please don't include health, financial or other
+      sensitive details.
+    </p>
+
+    <div class="chat" role="group" aria-label="Waitlist questionnaire">
+      <div class="chat-head">
+        <span class="chat-title">waitlist</span>
+        <span class="chat-progress" aria-live="polite"></span>
+      </div>
+      <div class="chat-log" aria-live="polite"></div>
+      <div class="chat-multi" hidden role="group" aria-label="Choose any that apply"></div>
+      <form class="chat-input" autocomplete="on">
+        <label class="visually-hidden" for="wl-field">Your answer</label>
+        <input id="wl-field" class="chat-field" name="answer" type="text" placeholder="Type your answer…" autocomplete="off" />
+        <label class="visually-hidden" for="wl-select">Choose an option</label>
+        <select id="wl-select" class="chat-select" name="choice" hidden></select>
+        <button class="btn btn-primary" type="submit">Send</button>
+      </form>
+      <p class="chat-foot">
+        Stored so we can email you at launch, and to understand which domains to build first. <button type="button" class="linklike js-restart">Start over</button>
+      </p>
+    </div>
+  </section>
+
+  <!-- ─────────────── FEEDBACK ─────────────── -->
+  <section class="section wrap" id="feedback">
+    <div class="section-head"><h2>Feedback</h2></div>
+    <p class="section-sub">
+      Four questions about what would actually make this useful to you — including
+      what it would plausibly be worth. Goes to the same place as the waitlist, and
+      needs no email unless you want a reply.
+    </p>
+    <div class="chat" role="group" aria-label="Feedback questionnaire">
+      <div class="chat-head">
+        <span class="chat-title">feedback</span>
+        <span class="chat-progress" aria-live="polite"></span>
+      </div>
+      <div class="chat-log" aria-live="polite"></div>
+      <div class="chat-multi" hidden role="group" aria-label="Choose any that apply"></div>
+      <form class="chat-input" autocomplete="on">
+        <label class="visually-hidden" for="fb-field">Your answer</label>
+        <input id="fb-field" class="chat-field" name="answer" type="text" placeholder="Type your answer…" autocomplete="off" />
+        <label class="visually-hidden" for="fb-select">Choose an option</label>
+        <select id="fb-select" class="chat-select" name="choice" hidden></select>
+        <button class="btn btn-primary" type="submit">Send</button>
+      </form>
+      <p class="chat-foot">
+        Four short questions. No email needed unless you want a reply. <button type="button" class="linklike js-restart">Start over</button>
+      </p>
+    </div>
+  </section>
+
+  <!-- ─────────────── LINKS ─────────────── -->
+  <section class="section wrap" id="links">
+    <div class="section-head"><h2>Read the actual thing</h2></div>
+    <p class="section-sub">NoETL is developed in the open. The code and docs are live today, even though the service is not.</p>
+    <div class="cards">
+      <a class="card" href="https://github.com/noetl/noetl" rel="noopener">
+        <span class="card-k">GitHub</span>
+        <span class="card-t">noetl/noetl</span>
+        <span class="card-d">Source and README — the engine, playbook schema and examples.</span>
+      </a>
+      <a class="card" href="https://github.com/noetl/noetl/wiki" rel="noopener">
+        <span class="card-k">Wiki</span>
+        <span class="card-t">noetl/noetl wiki</span>
+        <span class="card-d">Design notes, architecture and longer-form background.</span>
+      </a>
+      <a class="card" href="https://saqbit.com" rel="noopener">
+        <span class="card-k">Built on NoETL <em class="card-demo">demo</em></span>
+        <span class="card-t">saqbit.com</span>
+        <span class="card-d">Quantum computation cloud — hybrid quantum-classical workflows orchestrated by NoETL. A live demo, not a product yet.</span>
+      </a>
+      <a class="card" href="https://github.com/noetl/signal-mesh/wiki/Architecture-Blueprint" rel="noopener">
+        <span class="card-k">Blueprint</span>
+        <span class="card-t">signal-mesh architecture</span>
+        <span class="card-d">The real design behind the A2A agent mesh above — tiers, Agent Cards and the event log. Design and POC.</span>
+      </a>
+      <a class="card" href="https://noetl.dev" rel="noopener">
+        <span class="card-k">Docs</span>
+        <span class="card-t">noetl.dev</span>
+        <span class="card-d">Documentation: playbook reference, tools and how executions work.</span>
+      </a>
+      <a class="card" href="https://noetl.io" rel="noopener">
+        <span class="card-k">Project</span>
+        <span class="card-t">noetl.io</span>
+        <span class="card-d">The project site.</span>
+      </a>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap foot-inner">
+    <p><strong>NoETL — coming January 2027.</strong> Not generally available. The demo on this page is simulated and executes nothing.</p>
+    <p class="foot-links">
+      <a href="https://github.com/noetl/noetl" rel="noopener">GitHub</a> ·
+      <a href="https://github.com/noetl/noetl/wiki" rel="noopener">Wiki</a> ·
+      <a href="https://noetl.dev" rel="noopener">Docs</a> ·
+      <a href="https://noetl.io" rel="noopener">noetl.io</a>
+    </p>
+  </div>
+</footer>
+
+<script src="./demos.js"></script>
+<script src="./forms.js"></script>
+<script src="./app.js"></script>
+</body>
+</html>
