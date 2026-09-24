@@ -1,0 +1,4 @@
+# Local wrangler dev state (miniflare sqlite, local KV blobs, caches).
+# Never commit this: it is machine-local and has held real submission blobs.
+.wrangler/
+node_modules/

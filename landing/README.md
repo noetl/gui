@@ -17,17 +17,18 @@ That property is checkable, and worth re-checking after any change:
 
 ```sh
 # The only network calls in the bundle must be the two own-origin Functions.
-grep -nE 'fetch\(|XMLHttpRequest|WebSocket|EventSource' dist/*.js
+grep -nE 'fetch\(|XMLHttpRequest|WebSocket|EventSource' public/*.js
 ```
 
 ## Layout
 
 ```
-dist/          static assets, deployed as-is (no build step)
+public/        static assets, deployed as-is (no build step)
   index.html
   styles.css
-  demos.js     the five canned domain walkthroughs
-  app.js       demo player, waitlist chat, feedback form
+  demos.js     the canned domain walkthroughs
+  forms.js     question specs for both questionnaires
+  app.js       demo player + the chat engine that drives both forms
 functions/api/ Cloudflare Pages Functions
   waitlist.js  POST /api/waitlist  -> KV
   feedback.js  POST /api/feedback  -> KV
@@ -80,6 +81,39 @@ The event names are the real ones NoETL records — `playbook_started`,
 every demo playbook carries `metadata.version`, for the same reason real ones
 must: without it a playbook registers and then never dispatches.
 
+
+## ⚠ The directory is `public/`, not `dist/`
+
+The repo's root `.gitignore` ignores `dist/`. When this site lived in
+`landing/dist/`, **every source file was silently excluded from git** — the
+first PR committed only the README and the Functions, and the actual page was
+never in the repository. Worse, `landing/.wrangler/` (miniflare state, local KV
+blobs) *was* committed.
+
+These files are hand-written source, not build output, so `public/` is both
+accurate and out of the ignore's way. `landing/.gitignore` now also excludes
+`.wrangler/`. If you rename this directory, check `git status` actually shows
+the files.
+
+## Intake questionnaires
+
+Both forms are chat questionnaires driven by one engine (`app.js`) from
+declarative specs (`forms.js`). Questions are enumerated wherever a fixed set
+is honest — `company_size`, `industry`, `role`, `scale`, `timeline`, `hosting`,
+`source`, `willingness_to_pay` are all closed sets and `domains` is a
+multi-select, so the result is analysable without parsing prose. Only
+`use_case`, `stack`, `missing` and `comment` are free text.
+
+⚠ **Partial save.** The waitlist is thirteen questions and some people stop at
+nine. Once a name and work email are in, the record is written with
+`status: "partial"` and updated in place at the end. The guard on that write
+must be set **synchronously** — `recordId` only lands when the response
+returns, so guarding on it alone fires a save per answer and each id-less POST
+mints a new id. Measured before the fix: 12 partial rows for one run.
+
+Scope is market intent only. Nothing asks for health, financial or otherwise
+sensitive data, and nothing should start.
+
 ## Storage
 
 Both Functions write to the KV namespace bound as `WAITLIST`
@@ -105,12 +139,12 @@ curl -H "Authorization: Bearer $CF_API_TOKEN" \
 ## Deploy
 
 ```sh
-npx wrangler pages deploy dist --project-name noetl-ai --branch main
+npx wrangler pages deploy public --project-name noetl-ai --branch main
 ```
 
 The KV binding lives on the Pages project (production and preview), so a
 deploy needs no extra configuration. Local development with the binding:
 
 ```sh
-npx wrangler pages dev dist --kv WAITLIST
+npx wrangler pages dev public --kv WAITLIST
 ```
