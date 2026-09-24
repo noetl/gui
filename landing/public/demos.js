@@ -397,6 +397,80 @@ workflow:
     ],
   },
   {
+    id: "security",
+    label: "Security & compliance",
+    title: "Control evidence and authorised testing",
+    desc: "One playbook for the audit cycle: confirm scope and authorisation, enumerate the controls, gather evidence from the systems that hold it, run the authorised scanners, triage what comes back, and assemble a package an auditor can actually read.",
+    /* ⚠ RESPONSIBLE FRAMING, and it is load-bearing rather than decorative.
+       This tile demonstrates ORCHESTRATION of security and compliance work.
+       It runs nothing, scans nothing, and reaches no verdict.
+       Three rules the content follows:
+         1. Authorisation is the FIRST step and it is a gate, because that is
+            how authorised testing actually works. A tool that scans before
+            checking scope is the problem, not the product.
+         2. No exploit detail. Findings appear as severity counts and control
+            mappings, never as technique, payload or target specifics.
+         3. No pass/fail claim. A tool prepares evidence; an auditor issues
+            the opinion. Saying otherwise would be false about how SOC 2
+            works and would mislead exactly the reader who most needs it
+            right. */
+    yaml: `metadata:
+  name: control-evidence
+  path: demo/sec/control-evidence
+  version: "1.0"
+
+workload:
+  framework: SOC 2 Type II
+  window_days: 90
+  scope_ref: engagement-2027-014
+
+workflow:
+  - step: start
+    tool: { kind: noop }
+  - step: confirm_authorisation
+    tool: { kind: python }        # gate: scope + signed engagement
+  - step: enumerate_controls
+    tool: { kind: python }
+  - step: collect_evidence
+    tool: { kind: playbook }      # config, access, change, log systems
+  - step: run_authorised_scans
+    tool: { kind: playbook }      # in-scope assets only
+  - step: triage_findings
+    tool: { kind: python }
+  - step: check_control_status
+    tool: { kind: python }
+  - step: build_evidence_pack
+    tool: { kind: python }
+  - step: end
+    tool: { kind: noop }`,
+    steps: [
+      { step: "start", tool: "noop", note: "entry point" },
+      { step: "confirm_authorisation", tool: "python", note: "refuses to continue without scope and a signed engagement",
+        out: "scope engagement-2027-014 valid, 42 assets in scope" },
+      { step: "enumerate_controls", tool: "python", note: "controls for the selected framework",
+        out: "64 controls across 5 trust criteria" },
+      { step: "collect_evidence", tool: "playbook · evidence sources", note: "config, access reviews, change records, logs",
+        out: "58 of 64 controls have evidence for the window" },
+      { step: "run_authorised_scans", tool: "playbook · scanner orchestration", note: "in-scope assets only, rate limited",
+        out: "42 assets scanned, 17 findings returned" },
+      { step: "triage_findings", tool: "python", note: "deduplicate, rank by severity, assign an owner",
+        out: "17 to 11 after dedupe: 2 high, 4 medium, 5 low" },
+      { step: "check_control_status", tool: "python", note: "map evidence and findings onto each control",
+        out: "58 evidenced, 6 gaps, 0 opinions issued" },
+      { step: "build_evidence_pack", tool: "python", note: "assemble for the auditor with provenance",
+        out: "pack built, every item traceable to its source" },
+      { step: "end", tool: "noop" },
+    ],
+    result: [
+      ["framework", "SOC 2 Type II, 90 day window (illustrative)"],
+      ["controls", "64 enumerated, 58 with evidence, 6 gaps to close"],
+      ["authorised scan", "42 in-scope assets, 11 findings after dedupe"],
+      ["severity", "2 high, 4 medium, 5 low, each with an owner"],
+      ["outcome", "an evidence pack for the auditor, not a pass or fail"],
+    ],
+    caveat: "Simulated orchestration, not a security assessment. Nothing is scanned and no system is touched. The counts and severities are invented to show the workflow, no technique or exploit detail appears anywhere in this demo, and a tool of this kind prepares evidence rather than reaching a verdict. The SOC 2 opinion is the auditor's to issue, and testing runs only inside a scope someone has signed.",
+  },
+  {
     id: "quantum",
     label: "Quantum",
     kind: "external",

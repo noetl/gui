@@ -160,6 +160,28 @@ about a real compound, and that no output of such a pipeline would be acted on
 without review by a qualified chemist. Keep that caveat. A sensitive domain is
 exactly where a demo must not be mistaken for a claim.
 
+## The security and compliance tile, and its three rules
+
+Presented as ONE narrative rather than two sub-flows, because a SOC 2 evidence
+cycle genuinely contains an authorised penetration test. Splitting them would
+have needed new UI to say something the single flow already says.
+
+Three rules the content follows. They are load-bearing, not decoration, and a
+change that breaks one is a change worth rejecting:
+
+1. **Authorisation is the first step and it is a gate.** The flow refuses to
+   continue without a scope and a signed engagement, because that is how
+   authorised testing works. A tool that scans before checking scope is the
+   problem, not the product.
+2. **No exploit detail.** Findings appear only as severity counts and control
+   mappings. No technique, payload, or target specifics appear anywhere.
+3. **No pass or fail claim.** A tool prepares evidence; the auditor issues the
+   opinion. The result row says so in as many words: "an evidence pack for the
+   auditor, not a pass or fail". Claiming otherwise would be false about how
+   SOC 2 works, and would mislead exactly the reader who most needs it right.
+
+Nothing is scanned and no system is touched. Every count is invented.
+
 ## Copy rule: no dashes
 
 The site copy uses no em-dashes (U+2014), no en-dashes (U+2013), and no spaced
