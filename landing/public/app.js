@@ -27,7 +27,18 @@
   const resetBtn = document.querySelector(".btn-reset");
 
   let active = 0;
+  let scenario = 0;    // index within demos[active].scenarios, when it has them
   let cursor = 0;      // index of the next step to play
+
+  /** A mesh tile carries alternate scenarios; every other tile is its own.
+   *  Resolving here keeps the player identical for both shapes. */
+  function view(d) {
+    if (!d) return {};
+    if (!d.scenarios || !d.scenarios.length) return d;
+    const s = d.scenarios[Math.min(scenario, d.scenarios.length - 1)];
+    // Scenario fields win; tile-level fields (rule, links, caveat) fall through.
+    return Object.assign({}, d, s);
+  }
   let playing = false;
   let timer = null;
 
@@ -63,12 +74,47 @@
     const d = demos[i];
     if (!d || d.kind === "external") return;   // link-out tiles are never "selected"
     active = i;
+    scenario = 0;
     reset();
     buildTabs();
-    titleEl.textContent = d.title;
-    descEl.textContent = d.desc;
-    yamlEl.textContent = d.yaml;
-    renderCards(d);
+    renderScenario();
+  }
+
+  /** Paint whatever the current tile + scenario resolves to. */
+  function renderScenario() {
+    const d = demos[active];
+    const v = view(d);
+    titleEl.textContent = v.title;
+    descEl.textContent = v.desc;
+    yamlEl.textContent = v.yaml;
+    renderScenarioTabs(d);
+    renderCards(v);
+  }
+
+  /** Scenario switcher, only for tiles that declare more than one. */
+  function renderScenarioTabs(d) {
+    const host = document.querySelector(".scenario-tabs");
+    if (!host) return;
+    const list = d.scenarios || [];
+    if (list.length < 2) { host.hidden = true; host.innerHTML = ""; return; }
+    host.innerHTML = "";
+    list.forEach((s, i) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "scenario-tab" + (i === scenario ? " active" : "");
+      b.setAttribute("aria-pressed", String(i === scenario));
+      b.innerHTML = '<span class="st-label"></span><span class="st-blurb"></span>';
+      b.querySelector(".st-label").textContent = s.label;
+      b.querySelector(".st-blurb").textContent = s.blurb || "";
+      b.addEventListener("click", () => {
+        if (scenario === i) return;
+        scenario = i;
+        reset();
+        renderScenario();
+      });
+      host.appendChild(b);
+    });
+    host.hidden = false;
   }
 
   /** Agent Cards + the load-bearing tier rule, for mesh demos only. */
@@ -128,7 +174,7 @@
 
   /** Play one step as the sequence of events a real execution would record. */
   function playStep() {
-    const d = demos[active];
+    const d = view(demos[active]);
     if (cursor === 0) {
       const pbPath = d.yaml.match(/path:\s*(\S+)/)[1];
       evt("playbook_started", pbPath, "STARTED");
@@ -153,7 +199,7 @@
 
   function finish() {
     if (playing) stop();
-    const d = demos[active];
+    const d = view(demos[active]);
     if (!eventsEl.querySelector(".ev-type-final")) {
       const li = document.createElement("li");
       li.className = "event event-final";
@@ -192,12 +238,12 @@
 
   function run() {
     if (playing) return stop();
-    if (cursor >= demos[active].steps.length) reset();
+    if (cursor >= view(demos[active]).steps.length) reset();
     playing = true;
     runBtn.textContent = "Pause";
     playStep();
     timer = setInterval(() => {
-      if (cursor >= demos[active].steps.length) return stop();
+      if (cursor >= view(demos[active]).steps.length) return stop();
       playStep();
     }, 900);
   }
