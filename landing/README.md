@@ -138,6 +138,28 @@ lands, add it to that `links` array as
 deliberately absent rather than guessed: a plausible-looking `/docs/a2a` that
 404s is worse than no link at all.
 
+## The drug design tile, and what it deliberately does not say
+
+Its SHAPE is grounded in a real pipeline: the stage order (prepare, dock,
+score, fingerprint interactions, classify, record) and the toolchain names
+(RDKit, Meeko, AutoDock-GPU, ProLIF, a metadata index with checksums) come
+from a working drug design project.
+
+⚠ **None of its values do, and none should be added.** That repository is
+private research. No real compound name, target residue or measured affinity
+appears on this page, because a public pre-launch marketing site is not the
+place to publish someone's unpublished results. Every identifier and number in
+the tile is invented to demonstrate orchestration.
+
+For the same reason there is no "learn more" link on this tile: the source
+repository is private, so linking it would send visitors to a 404 at best.
+
+The on-screen caveat says plainly that it is a simulated pipeline and not a
+scientific result, that nothing shown is a measured affinity or a finding
+about a real compound, and that no output of such a pipeline would be acted on
+without review by a qualified chemist. Keep that caveat. A sensitive domain is
+exactly where a demo must not be mistaken for a claim.
+
 ## Copy rule: no dashes
 
 The site copy uses no em-dashes (U+2014), no en-dashes (U+2013), and no spaced

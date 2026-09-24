@@ -19,7 +19,7 @@
  */
 
 const DOMAINS = [
-  "Agent mesh (A2A)", "Travel", "Trading", "Healthcare",
+  "Agent mesh (A2A)", "Travel", "Trading", "Healthcare", "Drug design",
   "Call centre", "SRE / platform", "Quantum", "Other",
 ];
 

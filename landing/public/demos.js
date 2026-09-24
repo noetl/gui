@@ -242,6 +242,75 @@ workflow:
     caveat: "Illustrative only. A real deployment is a decision-support aid: a clinician reviews every output, and nothing is auto-actioned.",
   },
   {
+    id: "drugdesign",
+    label: "Drug design",
+    title: "Probe design pipeline",
+    desc: "A campaign run as one playbook: prepare the ligand library, dock it against the target, score poses, fingerprint the interactions, classify behaviour, and record everything with checksums so the run can be cited and repeated.",
+    /* SHAPE grounded in a real pipeline (stage order and toolchain: RDKit and
+       Meeko for preparation, AutoDock-GPU/Vina for docking, ProLIF for
+       interaction fingerprints, a metadata index for the registry).
+       ⚠ VALUES ARE NOT. No real compound, target residue or measured affinity
+       from that work appears here: it is private research, and a public
+       marketing page is not the place to publish someone's unpublished
+       results. Every identifier and number below is invented to show the
+       orchestration and is labelled as such on screen. */
+    yaml: `metadata:
+  name: probe-campaign
+  path: demo/chem/probe-campaign
+  version: "1.0"
+
+workload:
+  target: transporter-isoform-A
+  library: probe-set-0412
+  replicates: 3
+
+workflow:
+  - step: start
+    tool: { kind: noop }
+  - step: validate_context
+    tool: { kind: python }        # pin toolchain + inputs
+  - step: prepare_ligands
+    tool: { kind: python }        # RDKit + Meeko
+  - step: dock_provisional
+    tool: { kind: playbook }      # AutoDock-GPU lane
+  - step: score_poses
+    tool: { kind: python }
+  - step: analyse_interactions
+    tool: { kind: python }        # ProLIF fingerprints
+  - step: classify_behaviour
+    tool: { kind: python }
+  - step: record_campaign
+    tool: { kind: playbook }      # registry + checksums
+  - step: end
+    tool: { kind: noop }`,
+    steps: [
+      { step: "start", tool: "noop", note: "entry point" },
+      { step: "validate_context", tool: "python", note: "pin inputs and toolchain versions",
+        out: "target + 1 library resolved, 6 deps pinned" },
+      { step: "prepare_ligands", tool: "python · RDKit, Meeko", note: "protonate, enumerate conformers, convert",
+        out: "48 ligands prepared, 214 conformers" },
+      { step: "dock_provisional", tool: "playbook · AutoDock-GPU", note: "provisional docking lane, 3 replicates",
+        out: "144 runs complete, 48 best poses" },
+      { step: "score_poses", tool: "python", note: "rank by predicted affinity and pose quality",
+        out: "top 12 carried forward (illustrative scores)" },
+      { step: "analyse_interactions", tool: "python · ProLIF", note: "interaction fingerprints per pose",
+        out: "12 fingerprints, 4 contact types" },
+      { step: "classify_behaviour", tool: "python", note: "group poses by binding behaviour",
+        out: "3 behaviour classes, 1 flagged for review" },
+      { step: "record_campaign", tool: "playbook · registry", note: "inputs, configs, code SHAs, checksums",
+        out: "campaign recorded, fully replayable" },
+      { step: "end", tool: "noop" },
+    ],
+    result: [
+      ["campaign", "probe-set-0412 against transporter-isoform-A"],
+      ["docked", "48 ligands, 3 replicates, 144 runs"],
+      ["carried forward", "12 poses across 3 behaviour classes"],
+      ["flagged for review", "1 pose, sent to a chemist, not auto-accepted"],
+      ["provenance", "inputs, configs, code SHAs and checksums recorded"],
+    ],
+    caveat: "Simulated pipeline, not a scientific result. The identifiers, counts and classes above are invented to show how the orchestration runs. Nothing here is a measured affinity or a finding about any real compound or target, and no output of a pipeline like this would be acted on without review by a qualified chemist.",
+  },
+  {
     id: "callcenter",
     label: "Call centre",
     title: "Routing & summarisation",
