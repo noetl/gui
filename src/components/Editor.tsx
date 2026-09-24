@@ -25,6 +25,8 @@ import { useNavigate } from "react-router-dom";
 // @ts-ignore
 import yaml from "js-yaml";
 import { apiService } from "../services/api";
+import { hasBlockingFinding, preflightPlaybook } from "../services/playbookPreflight";
+import type { PreflightFinding } from "../services/playbookPreflight";
 import { PlaybookData } from "../types";
 import PlaybookDesigner from "./PlaybookDesigner";
 import PlaybookTestLab from "./PlaybookTestLab";
@@ -87,6 +89,7 @@ const PlaybookEditor: React.FC = () => {
   const [content, setContent] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [preflight, setPreflight] = useState<PreflightFinding[]>([]);
   const [validating, setValidating] = useState(false);
   const [executing, setExecuting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -138,6 +141,18 @@ workflow: []
   const handleSave = async () => {
     if (!content.trim()) {
       message.error("Playbook content cannot be empty");
+      return;
+    }
+
+    // ⚠ Pre-flight BEFORE the server sees it. Every check here catches a
+    // failure the server accepts happily and that then goes silent at
+    // execution time — a playbook with no metadata.version registers fine and
+    // then never dispatches. Surfacing it here is the difference between a
+    // one-line fix and reading event traces to find out why nothing ran.
+    const findings = preflightPlaybook(content);
+    setPreflight(findings);
+    if (hasBlockingFinding(findings)) {
+      message.error("This playbook would register but never run — see the checks below.");
       return;
     }
 
@@ -322,6 +337,30 @@ workflow: []
             </Space>
           </Col>
         </Row>
+
+        {preflight.length > 0 && (
+          <Card className="PlaybookValidationErrors" size="small">
+            <Alert
+              type={hasBlockingFinding(preflight) ? "error" : "warning"}
+              showIcon
+              message={
+                hasBlockingFinding(preflight)
+                  ? "This playbook would register but never run"
+                  : "Pre-flight warnings"
+              }
+              description={
+                <ul style={{ margin: 0, paddingLeft: 20 }}>
+                  {preflight.map((f, i) => (
+                    <li key={i} style={{ marginBottom: 6 }}>
+                      <code>{f.field}</code> — {f.message}
+                      <div style={{ opacity: 0.8 }}>{f.detail}</div>
+                    </li>
+                  ))}
+                </ul>
+              }
+            />
+          </Card>
+        )}
 
         {validationResult && (
           <Card className="PlaybookValidationErrors" size="small">

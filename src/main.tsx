@@ -18,6 +18,7 @@ import Credentials from "./components/Credentials";
 import Editor from "./components/Editor";
 import Execution from "./components/Execution";
 import ExecutionDetail from "./components/ExecutionDetail";
+import EhdbRecords from "./components/EhdbRecords";
 import GatewayLogin from "./components/GatewayLogin";
 import GatewayAssistant from "./components/GatewayAssistant";
 import NoetlPrompt from "./components/NoetlPrompt";
@@ -112,6 +113,7 @@ type MenuItem = {
 const ALL_MENU_ITEMS: MenuItem[] = [
   { key: "/catalog", label: "catalog", path: "/catalog", section: "Catalog", icon: <AppstoreOutlined />, roles: [], adminOnly: true },
   { key: "/execution", label: "execution", path: "/execution", section: "Operate", icon: <EyeOutlined />, roles: [], adminOnly: true },
+  { key: "/ehdb", label: "records", path: "/ehdb", section: "Operate", icon: <DatabaseOutlined />, roles: [], adminOnly: true },
   { key: "/users", label: "users", path: "/users", section: "Admin", icon: <TeamOutlined />, roles: [], adminOnly: true },
   { key: "/editor", label: "edit", path: "/editor", section: "Build", icon: <CodeOutlined />, roles: [], adminOnly: true },
   { key: "/credentials", label: "secrets", path: "/credentials", section: "Admin", icon: <KeyOutlined />, roles: [], adminOnly: true },
@@ -649,6 +651,7 @@ const AuthenticatedApp: React.FC<{ appTheme: AppTheme; onThemeChange: (theme: Ap
                   <Route path="/editor" element={userRoles.includes("admin") ? <Editor /> : <AccessDenied />} />
                   <Route path="/execution" element={userRoles.includes("admin") ? <Execution /> : <AccessDenied />} />
                   <Route path="/execution/:id" element={userRoles.includes("admin") ? <ExecutionDetail /> : <AccessDenied />} />
+                  <Route path="/ehdb" element={userRoles.includes("admin") ? <EhdbRecords /> : <AccessDenied />} />
                   <Route path="/travel" element={<GatewayAssistant />} />
                   <Route path="/users" element={userRoles.includes("admin") ? <UserManagement /> : <AccessDenied />} />
                   {/* Catch-all route for 404 */}

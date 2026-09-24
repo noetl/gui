@@ -11,6 +11,12 @@ import {
   UiSchema,
 } from "../types";
 import { CreatePlaybookResponse } from "./api.types";
+import {
+  EhdbEventsPage,
+  EhdbExecution,
+  EhdbExecutionsPage,
+  EhdbIndex,
+} from "./ehdb.types";
 import { resolveGatewayBaseUrl } from "./gatewayBaseUrl";
 import { isSkipAuthAllowed } from "./gatewayAuth";
 import { readAppEnv } from "./runtimeEnv";
@@ -651,6 +657,97 @@ class APIService {
 
   async deleteCredential(identifier: string): Promise<void> {
     await apiClient.delete(`/credentials/${identifier}`);
+  }
+
+  // ---- EHDB read-model (read-only) ------------------------------------
+  //
+  // Every route below is GET-only and lives behind `/api/ehdb`. The server
+  // advertises them itself at the index and marks the surface
+  // `"read_only": true`; nothing here can mutate platform state.
+
+  /**
+   * The self-describing index. Worth calling rather than hard-coding a route
+   * list: it reports which tier answers each path and whether the server
+   * serves it directly or relays it to the worker data-plane, so the UI can
+   * show what it is actually reading.
+   */
+  async getEhdbIndex(): Promise<EhdbIndex> {
+    const response = await apiClient.get("/ehdb");
+    return response.data;
+  }
+
+  /**
+   * Execution read-model.
+   *
+   * OFFSET-paginated, and it genuinely supports `path` / `status` /
+   * `catalog_id` filters server-side (verified against prod: `?status=RUNNING`
+   * returns only RUNNING rows). Note the asymmetry with the event scan below,
+   * which is cursor-paginated and has NO filters — they are different shapes
+   * and mixing them up fails quietly.
+   */
+  async getEhdbExecutions(params?: {
+    limit?: number;
+    offset?: number;
+    path?: string;
+    status?: string;
+    catalog_id?: string;
+  }): Promise<EhdbExecutionsPage> {
+    const query: Record<string, string | number> = {
+      limit: params?.limit ?? 50,
+      offset: params?.offset ?? 0,
+    };
+    if (params?.path) query.path = params.path;
+    if (params?.status) query.status = params.status;
+    if (params?.catalog_id) query.catalog_id = params.catalog_id;
+    const response = await apiClient.get("/ehdb/executions", { params: query });
+    return response.data;
+  }
+
+  /** Derived state for one execution. */
+  async getEhdbExecution(executionId: string): Promise<EhdbExecution> {
+    const response = await apiClient.get(`/ehdb/executions/${encodeURIComponent(executionId)}`);
+    return response.data;
+  }
+
+  /** Event read-model scoped to one execution. */
+  async getEhdbExecutionEvents(
+    executionId: string,
+    params?: { limit?: number },
+  ): Promise<EhdbEventsPage> {
+    const response = await apiClient.get(
+      `/ehdb/executions/${encodeURIComponent(executionId)}/events`,
+      { params: { limit: params?.limit ?? 200 } },
+    );
+    return response.data;
+  }
+
+  /**
+   * Global event-log scan.
+   *
+   * ⚠ THE FORWARD CURSOR PARAMETER IS `after`, NOT `cursor`.
+   *
+   * The response field is named `next_cursor`, which invites you to send it
+   * back as `?cursor=` — and the server SILENTLY IGNORES that, handing you
+   * page one again forever. The handler takes
+   * `EventsQuery { after: Option<i64>, limit: Option<i32> }` and nothing else;
+   * verified against prod, where `?cursor=` repeated the same three event_ids
+   * and `?after=` advanced correctly.
+   *
+   * There are also NO server-side filters on this route — no execution_id, no
+   * event_type. Passing them is accepted and ignored, which looks like a
+   * filter that matches everything. To scope events to one execution use
+   * `getEhdbExecutionEvents()`, which is a different route that really does
+   * scope. Anything else must be filtered client-side.
+   */
+  async scanEhdbEvents(params?: {
+    limit?: number;
+    /** Forward cursor: returns events with `event_id > after`. */
+    after?: string | null;
+  }): Promise<EhdbEventsPage> {
+    const query: Record<string, string | number> = { limit: params?.limit ?? 100 };
+    if (params?.after) query.after = params.after;
+    const response = await apiClient.get("/ehdb/events", { params: query });
+    return response.data;
   }
 }
 
