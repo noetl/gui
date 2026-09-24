@@ -138,6 +138,44 @@ lands, add it to that `links` array as
 deliberately absent rather than guessed: a plausible-looking `/docs/a2a` that
 404s is worse than no link at all.
 
+## Copy rule: no dashes
+
+The site copy uses no em-dashes (U+2014), no en-dashes (U+2013), and no spaced
+hyphens as sentence breaks. Use a comma, a colon, a period, parentheses, or
+restructure the sentence.
+
+Numeric ranges are written out ("2 to 10", "$100 to $1k / month") rather than
+hyphenated, so the rule needs no exceptions.
+
+Two things that legitimately contain " - " and must not be "fixed": the YAML
+list markers in the displayed playbook source (`  - step: start`), and
+arithmetic in the code.
+
+Check the rendered copy, not just the files, since most text is injected by
+`demos.js` and `forms.js`:
+
+```sh
+grep -c "\xe2\x80\x94" public/*          # em-dash, expect 0 everywhere
+```
+
+## Deploy: run ./stamp.sh first
+
+⚠ Pages serves static assets with `cache-control: public, max-age=14400`
+(4 hours) but serves index.html with `max-age=0, must-revalidate`. With
+unversioned `./app.js` references, a returning visitor keeps the OLD bundle for
+up to four hours after a deploy while getting the new HTML, so a copy or logic
+change is simply invisible to them and looks like the deploy failed. This bit
+us during the dash cleanup: the files on the server were clean while the
+browser kept rendering the old strings.
+
+`./stamp.sh` writes a content hash onto each asset URL, so the always-fresh
+HTML points at a URL the browser has never cached. It is idempotent.
+
+```sh
+./stamp.sh
+npx wrangler pages deploy public --project-name noetl-ai --branch main
+```
+
 ## Storage
 
 Both Functions write to the KV namespace bound as `WAITLIST`
