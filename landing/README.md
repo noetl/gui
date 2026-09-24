@@ -204,12 +204,12 @@ decision, not the decision itself.
 
 ## The Console entry
 
-Two links to gui.noetl.ai: a pill in the header nav and a card above the link
+Two links to console.noetl.ai: a pill in the header nav and a card above the link
 grid, both styled apart from the simulated tiles because they mean something
 different. The demo is public and anonymous; the console needs an account and
 signs in through the NoETL gateway.
 
-⚠ **Not deployed yet, deliberately.** gui.noetl.ai does not resolve, so
+⚠ **Not deployed yet, deliberately.** console.noetl.ai does not resolve, so
 shipping these links would put a dead link on a public page. Deploy them the
 moment the CNAME exists:
 
