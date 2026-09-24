@@ -1,13 +1,13 @@
-/* NoETL landing — simulated domain demos.
+/* NoETL landing: simulated domain demos.
  *
  * ⚠ EVERYTHING HERE IS CANNED. No fetch, no XHR, no websocket, no backend of
  * any kind. Each demo is a hand-written playbook plus hand-written step
  * outputs, replayed on a timer in the visitor's browser.
  *
- * The event names are the real ones NoETL records — playbook_started,
+ * The event names are the real ones NoETL records: playbook_started,
  * execution.catalog_snapshot, command.issued, command.claimed,
  * command.started, call.done, command.completed, step.enter,
- * playbook.completed — because showing a made-up lifecycle to explain a real
+ * playbook.completed. Showing a made-up lifecycle to explain a real
  * product would be the one dishonest thing on an otherwise honest page.
  *
  * `metadata.version` appears in every playbook below for the same reason it
@@ -21,11 +21,11 @@ window.NOETL_DEMOS = [
     featured: true,
     kind: "mesh",
     title: "Tiered A2A / ReAct signal mesh",
-    desc: "Thousands of devices, no single model that can reason over all of them. A hierarchy of small reasoners each takes a narrow slice, decides, and publishes a reduced value upward — ending in one number and one boolean that can be replayed rather than trusted.",
+    desc: "Thousands of devices, no single model that can reason over all of them. A hierarchy of small reasoners each takes a narrow slice, decides, and publishes a reduced value upward, ending in one number and one boolean that can be replayed rather than trusted.",
     /* Modelled on the real signal-mesh blueprint (noetl/signal-mesh wiki):
        tier 0 raw ReAct agents per signal class, tier 1 specialized
        aggregators, tier 2 synthesizer emitting a numeric definition-function
-       plus a boolean. Agent discovery is A2A — an Agent Card served at
+       plus a boolean. Agent discovery is A2A, via an Agent Card served at
        /.well-known/agent-card.json and registered in the noetl catalog. */
     /* "Learn more" targets for this tile.
      *
@@ -34,7 +34,7 @@ window.NOETL_DEMOS = [
      * "read the architecture" spends it. Both entries below were checked for
      * HTTP 200 at build time.
      *
-     * The canonical A2A page on noetl.dev is not published yet — the docs
+     * The canonical A2A page on noetl.dev is not published yet. The docs
      * sitemap lists 261 URLs and none of them is an A2A/signal-mesh page. When
      * it lands, add it here as `{ href, label: "Read the docs", kind: "docs" }`
      * and verify 200 first. Deliberately absent rather than guessed: linking a
@@ -84,16 +84,16 @@ workflow:
       { step: "collect", tool: "http · collector shards", note: "sharded by device / region",
         out: "3 signal classes · 1,284 samples in 60s window" },
       { step: "tier0_react", tool: "playbook · agent.temp", tier: "tier 0",
-        reason: "temp 74.2°C, 8.1 above the 60s rolling mean — sustained, not a spike",
+        reason: "temp 74.2°C, 8.1 above the 60s rolling mean, sustained rather than a spike",
         act: "publish reduced value 68.0 (confidence 0.88)", out: "temp → 68.0" },
       { step: "tier0_react", tool: "playbook · agent.vibration", tier: "tier 0",
         reason: "RMS within band but third harmonic rising across the window",
         act: "publish reduced value 48.0 (confidence 0.71)", out: "vibration → 48.0" },
       { step: "tier0_react", tool: "playbook · agent.pressure", tier: "tier 0",
-        reason: "2.1 bar below setpoint, recovering — no trip condition",
+        reason: "2.1 bar below setpoint and recovering, so no trip condition",
         act: "publish reduced value 35.0 (confidence 0.93)", out: "pressure → 35.0" },
       { step: "tier1_aggregate", tool: "playbook · agent.site-health", tier: "tier 1",
-        reason: "weighted mean over tier 0 only — 0.6·68.0 + 0.4·48.0",
+        reason: "weighted mean over tier 0 only: 0.6·68.0 + 0.4·48.0",
         act: "publish 60.0", out: "site-health → 60.0" },
       { step: "tier1_aggregate", tool: "playbook · agent.asset-risk", tier: "tier 1",
         reason: "max over its slice; pressure alone is the risk input",
@@ -105,18 +105,18 @@ workflow:
     ],
     result: [
       ["verdict", "52.5 · true"],
-      ["threshold", "50.0 — exceeded"],
+      ["threshold", "50.0, exceeded"],
       ["tier 1 inputs", "site-health 60.0 · asset-risk 35.0 · weights 0.7 / 0.3"],
       ["tier 0 inputs", "temp 68.0 · vibration 48.0 · pressure 35.0"],
-      ["provenance", "every reasoning step appended to EHDB — replayable, not trusted"],
+      ["provenance", "every reasoning step appended to EHDB, so it can be replayed rather than trusted"],
     ],
-    caveat: "Design and POC. The signal-mesh is not deployed — these agents, signals and the verdict are illustrative, and the numbers are arranged to show the cascade, not measured.",
+    caveat: "Design and POC. The signal-mesh is not deployed, so these agents, signals and the verdict are illustrative. The numbers are arranged to show the cascade, not measured.",
   },
   {
     id: "travel",
     label: "Travel",
     title: "Trip planning",
-    desc: "Turn a rough request into a costed itinerary — hotels and flights resolved through provider tools, then assembled into one render-ready payload.",
+    desc: "Turn a rough request into a costed itinerary. Hotels and flights are resolved through provider tools, then assembled into one render-ready payload.",
     yaml: `metadata:
   name: trip-plan
   path: demo/travel/trip-plan
@@ -150,7 +150,7 @@ workflow:
     ],
     result: [
       ["destination", "Lisbon, Portugal"],
-      ["dates", "14–17 Feb 2027 · 3 nights"],
+      ["dates", "14 to 17 Feb 2027 · 3 nights"],
       ["flights", "TAP LIS 1042 · €184 return pp"],
       ["stay", "Baixa boutique · €138/night"],
       ["estimated total", "€742 for 2 travellers"],
@@ -160,7 +160,7 @@ workflow:
     id: "trading",
     label: "Trading",
     title: "Strategy screen",
-    desc: "Pull a universe, compute signals, and size positions against a risk budget — every input and intermediate recorded as an event.",
+    desc: "Pull a universe, compute signals, and size positions against a risk budget, with every input and intermediate recorded as an event.",
     yaml: `metadata:
   name: momentum-screen
   path: demo/trading/momentum-screen
@@ -204,7 +204,7 @@ workflow:
     id: "healthcare",
     label: "Healthcare",
     title: "Intake triage assist",
-    desc: "Structure an intake form, check it against a triage protocol, and route to the right queue — with the protocol version recorded alongside the decision.",
+    desc: "Structure an intake form, check it against a triage protocol, and route to the right queue, with the protocol version recorded alongside the decision.",
     yaml: `metadata:
   name: intake-triage
   path: demo/health/intake-triage
@@ -234,7 +234,7 @@ workflow:
     ],
     result: [
       ["protocol", "ESI-v4 (version recorded with decision)"],
-      ["acuity", "3 — urgent, not emergent"],
+      ["acuity", "3, urgent but not emergent"],
       ["routed to", "same-day clinic queue"],
       ["SLA", "4 hours"],
       ["clinician review", "required before action"],
@@ -245,7 +245,7 @@ workflow:
     id: "callcenter",
     label: "Call centre",
     title: "Routing & summarisation",
-    desc: "Transcribe, classify intent, route to a skill group, and leave a summary on the ticket — one playbook, four tools.",
+    desc: "Transcribe, classify intent, route to a skill group, and leave a summary on the ticket. One playbook, four tools.",
     yaml: `metadata:
   name: call-routing
   path: demo/cc/call-routing
@@ -279,7 +279,7 @@ workflow:
     result: [
       ["call length", "4m 12s"],
       ["intent", "billing dispute (0.91)"],
-      ["sentiment", "negative — escalation flagged"],
+      ["sentiment", "negative, escalation flagged"],
       ["routed to", "billing tier 2 · 90s wait"],
       ["ticket", "summary + transcript attached"],
     ],
@@ -288,7 +288,7 @@ workflow:
     id: "sre",
     label: "SRE",
     title: "Incident triage",
-    desc: "Correlate an alert with recent deploys, pull the matching runbook, and either remediate or page — with the whole chain replayable afterwards.",
+    desc: "Correlate an alert with recent deploys, pull the matching runbook, and either remediate or page, with the whole chain replayable afterwards.",
     yaml: `metadata:
   name: incident-triage
   path: demo/sre/incident-triage
@@ -324,7 +324,7 @@ workflow:
       ["symptom", "p99 180ms → 2.4s, 5xx at 3.1%"],
       ["correlated", "deploy v4.2.0, 12 minutes prior"],
       ["runbook", "latency-after-deploy"],
-      ["action", "rollback proposed — held for human approval"],
+      ["action", "rollback proposed, held for human approval"],
     ],
   },
   {
@@ -332,7 +332,7 @@ workflow:
     label: "Quantum",
     kind: "external",
     title: "Quantum computation cloud",
-    desc: "saqbit runs hybrid quantum-classical workflows orchestrated by NoETL. Unlike the tiles above it is not simulated here — the link opens the live saqbit demo.",
+    desc: "saqbit runs hybrid quantum-classical workflows orchestrated by NoETL. Unlike the tiles above it is not simulated here. The link opens the live saqbit demo.",
     href: "https://saqbit.com",
     hrefLabel: "Open the saqbit demo",
   },

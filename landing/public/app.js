@@ -1,10 +1,10 @@
-/* NoETL landing — interaction.
+/* NoETL landing: interaction.
  *
  * Two kinds of behaviour live here and they are deliberately kept apart:
  *
  *   1. The DEMO, which is pure theatre. It never touches the network.
  *   2. The WAITLIST and FEEDBACK forms, which are the only real network calls
- *      on this page — same-origin POSTs to this site's own Pages Functions.
+ *      on this page: same-origin POSTs to this site's own Pages Functions.
  *
  * There is no NoETL API client here, no gateway URL, no auth token. An
  * anonymous visitor cannot reach a playbook or an EHDB endpoint from this
@@ -34,7 +34,7 @@
   function buildTabs() {
     tabsEl.innerHTML = "";
     demos.forEach((d, i) => {
-      // An `external` tile is not a simulation — it opens a live demo
+      // An `external` tile is not a simulation. It opens a live demo
       // elsewhere. Rendering it as an anchor rather than a tab keeps that
       // honest: it looks like a link because it behaves like one.
       if (d.kind === "external") {
@@ -130,8 +130,9 @@
   function playStep() {
     const d = demos[active];
     if (cursor === 0) {
-      evt("playbook_started", d.yaml.match(/path:\s*(\S+)/)[1], "STARTED");
-      evt("execution.catalog_snapshot", "—", "RECORDED");
+      const pbPath = d.yaml.match(/path:\s*(\S+)/)[1];
+      evt("playbook_started", pbPath, "STARTED");
+      evt("execution.catalog_snapshot", pbPath, "RECORDED");
     }
     if (cursor >= d.steps.length) return finish();
 
@@ -177,7 +178,7 @@
     }
     const note = document.createElement("p");
     note.className = "result-sim";
-    note.textContent = "Simulated result — these values are canned, not computed.";
+    note.textContent = "Simulated result. These values are canned, not computed.";
     resultEl.appendChild(note);
     resultPane.hidden = false;
   }
@@ -223,8 +224,8 @@
   // declaratively in forms.js; nothing about a specific question lives here.
   //
   // ⚠ PARTIAL SAVE. The waitlist asks thirteen questions, and some people will
-  // leave at question nine. A drop-off is still market signal — and someone
-  // who gave a name and a work email is still a lead — so once the email is
+  // leave at question nine. A drop-off is still market signal, and someone
+  // who gave a name and a work email is still a lead, so once the email is
   // answered the record is written with status "partial" and then updated in
   // place at the end. Without this, every abandoned form is data we asked a
   // real person for and then threw away.
@@ -252,7 +253,7 @@
     let recordId = null;     // set by the partial save, reused by the final one
     // ⚠ The guard on the partial save must be set SYNCHRONOUSLY. `recordId`
     // only lands when the request returns, so guarding on it alone fires a
-    // fresh save on every subsequent answer — and because each id-less POST
+    // fresh save on every subsequent answer, and because each id-less POST
     // mints a new id, one person becomes a dozen rows. Measured: 12 partial
     // writes for a single 13-question run before this flag existed.
     let partialSave = null;  // the in-flight promise, awaited before the final write
@@ -289,7 +290,7 @@
         });
         const data = await res.json().catch(() => ({}));
         if (data && data.ok && data.id) recordId = data.id;
-      } catch (_) { /* deliberately silent — see above */ }
+      } catch (_) { /* deliberately silent, see above */ }
     }
 
     function ask() {
@@ -360,7 +361,7 @@
         // ⚠ Never claim a save that did not happen. The visitor decides whether
         // they are on the list based on this message.
         pending.remove();
-        bubble("That didn't save — " + (err && err.message ? err.message : "unknown error") +
+        bubble("That didn't save. " + (err && err.message ? err.message : "Unknown error") +
                ". Nothing was recorded. Please try again.", "bot", "error");
         done = false;
         sendBtn.disabled = false;
@@ -409,7 +410,7 @@
       bubble(skipped ? "skip" : shown, "me");
       qi += 1;
 
-      // Once we have a contactable identity, persist — exactly once.
+      // Once we have a contactable identity, persist exactly once.
       if (!partialSave && answers.email) partialSave = savePartial();
 
       ask();

@@ -28,7 +28,7 @@ window.NOETL_FORMS = {
   waitlist: {
     endpoint: "/api/waitlist",
     /* Name and email come first so a drop-off still leaves a contactable
-       lead — see the partial-save note in app.js. */
+       lead. See the partial-save note in app.js. */
     questions: [
       { key: "name", type: "text", q: "NoETL opens in January 2027. What should we call you?",
         placeholder: "Your name",
@@ -43,11 +43,11 @@ window.NOETL_FORMS = {
                   "Data / ML", "SRE / platform / ops", "Product", "Founder / exec",
                   "Analyst / researcher", "Other"] },
 
-      { key: "company", type: "text", q: "Company or team? Optional — say 'skip' to pass.",
+      { key: "company", type: "text", q: "Company or team? Optional, say 'skip' to pass.",
         placeholder: "Optional", optional: true },
 
       { key: "company_size", type: "choice", q: "How big is the organisation?",
-        options: ["Solo", "2–10", "11–50", "51–200", "200+"] },
+        options: ["Solo", "2 to 10", "11 to 50", "51 to 200", "200+"] },
 
       { key: "industry", type: "choice", q: "Which industry is that in?",
         options: ["Software / SaaS", "Financial services", "Healthcare / life sciences",
@@ -57,20 +57,20 @@ window.NOETL_FORMS = {
 
       { key: "domains", type: "multi", q: "Which of the showcases matter to you? Pick any that apply.",
         options: DOMAINS,
-        validate: v => v.length > 0 || "Pick at least one — or choose Other." },
+        validate: v => v.length > 0 || "Pick at least one, or choose Other." },
 
       { key: "use_case", type: "longtext",
         q: "What would you point NoETL at first? The more concrete, the more it shapes what we build.",
         placeholder: "e.g. nightly reconciliation across three systems, with replayable audit",
-        validate: v => v.trim().length >= 5 || "A sentence is plenty — it genuinely drives prioritisation." },
+        validate: v => v.trim().length >= 5 || "A sentence is plenty. It genuinely drives prioritisation." },
 
       { key: "stack", type: "text",
-        q: "What would it integrate with — or replace? Tools, languages, schedulers, anything.",
+        q: "What would it integrate with, or replace? Tools, languages, schedulers, anything.",
         placeholder: "e.g. Airflow, dbt, Postgres, Kafka, custom Python",
         optional: true },
 
       { key: "scale", type: "choice", q: "Roughly what volume? Executions, signals or events per day.",
-        options: ["Under 100 / day", "100 – 10k / day", "10k – 1M / day", "Over 1M / day", "Not sure yet"] },
+        options: ["Under 100 / day", "100 to 10k / day", "10k to 1M / day", "Over 1M / day", "Not sure yet"] },
 
       { key: "timeline", type: "choice", q: "Where are you in the process?",
         options: ["Evaluating now", "This quarter", "Next 6 months", "Just exploring"] },
@@ -78,12 +78,12 @@ window.NOETL_FORMS = {
       { key: "hosting", type: "choice", q: "Self-hosted or managed?",
         options: ["Self-hosted", "Managed / cloud", "Either works", "Not sure yet"] },
 
-      { key: "source", type: "choice", q: "Last one — how did you hear about NoETL?",
+      { key: "source", type: "choice", q: "Last one. How did you hear about NoETL?",
         options: ["GitHub", "Search", "Social / X / LinkedIn", "Word of mouth",
                   "Conference / talk", "Newsletter / blog", "Other"] },
     ],
     done: id => [
-      "You're on the list — reference " + id + ". We'll email you when NoETL opens in January 2027.",
+      "You're on the list. Your reference is " + id + ". We'll email you when NoETL opens in January 2027.",
       "Thanks for the detail; the domain, scale and timeline answers are what actually drive what gets built first.",
     ],
   },
@@ -96,17 +96,17 @@ window.NOETL_FORMS = {
         options: DOMAINS.concat(["None of them"]) },
 
       { key: "missing", type: "longtext",
-        q: "What's missing? Concretely — what would have to be true for you to adopt this?",
+        q: "What's missing? Concretely, what would have to be true for you to adopt this?",
         placeholder: "e.g. a managed control plane, an Airflow migration path, SOC 2",
         validate: v => v.trim().length >= 5 || "Even a short specific answer beats a long vague one." },
 
       { key: "willingness_to_pay", type: "choice",
         q: "If it did exactly that, what would it plausibly be worth to your team?",
-        options: ["Open source only — wouldn't pay", "Under $100 / month", "$100 – $1k / month",
-                  "$1k – $10k / month", "Over $10k / month", "Depends entirely on scope",
+        options: ["Open source only, wouldn't pay", "Under $100 / month", "$100 to $1k / month",
+                  "$1k to $10k / month", "Over $10k / month", "Depends entirely on scope",
                   "Rather not say"] },
 
-      { key: "comment", type: "longtext", q: "Anything else? Optional — say 'skip' to pass.",
+      { key: "comment", type: "longtext", q: "Anything else? Optional, say 'skip' to pass.",
         placeholder: "Optional", optional: true },
 
       { key: "email", type: "text", q: "Email, only if you'd like a reply. Otherwise say 'skip'.",
@@ -115,7 +115,7 @@ window.NOETL_FORMS = {
         validate: v => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.trim()) || "That doesn't look like an email address." },
     ],
     done: id => [
-      "Noted — saved as " + id + ". Thank you; the 'what's missing' answers get read properly, not aggregated away.",
+      "Noted, saved as " + id + ". Thank you; the 'what's missing' answers get read properly, not aggregated away.",
     ],
   },
 };
