@@ -202,6 +202,21 @@ plainly that the values are illustrative. The caveat also states that a real
 cycle keeps a person at the promotion gate: an eval score is evidence for a
 decision, not the decision itself.
 
+## The Console entry
+
+Two links to gui.noetl.ai: a pill in the header nav and a card above the link
+grid, both styled apart from the simulated tiles because they mean something
+different. The demo is public and anonymous; the console needs an account and
+signs in through the NoETL gateway.
+
+⚠ **Not deployed yet, deliberately.** gui.noetl.ai does not resolve, so
+shipping these links would put a dead link on a public page. Deploy them the
+moment the CNAME exists:
+
+```sh
+./stamp.sh && npx wrangler pages deploy public --project-name noetl-ai --branch main
+```
+
 ## Copy rule: no dashes
 
 The site copy uses no em-dashes (U+2014), no en-dashes (U+2013), and no spaced
