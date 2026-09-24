@@ -471,6 +471,77 @@ workflow:
     caveat: "Simulated orchestration, not a security assessment. Nothing is scanned and no system is touched. The counts and severities are invented to show the workflow, no technique or exploit detail appears anywhere in this demo, and a tool of this kind prepares evidence rather than reaching a verdict. The SOC 2 opinion is the auditor's to issue, and testing runs only inside a scope someone has signed.",
   },
   {
+    id: "slm",
+    label: "SLM training",
+    title: "Small model training cycle",
+    desc: "Fine-tuning as a loop rather than a one-off job: curate the dataset, train an adapter on a small base model, evaluate it against a golden set, hold it at a parity gate, and either register it or feed the failures straight into the next cycle.",
+    /* SHAPE grounded in the real SLM work: small Gemma base models, a
+       pluggable backend (a local in-cluster runner or a cloud one, selected
+       by the playbook rather than baked in), adapters instead of full
+       retrains, a schema parity check on structured output, and a model
+       registry that records what was promoted and why.
+       ⚠ THE NUMBERS ARE INVENTED. No benchmark score here is a measurement.
+       Publishing a made-up eval number as though it were real is the easiest
+       way to mislead in this domain, so the tile shows the SHAPE of a gate
+       and says plainly that the values are illustrative. */
+    yaml: `metadata:
+  name: slm-training-cycle
+  path: demo/slm/training-cycle
+  version: "1.0"
+
+workload:
+  base_model: gemma-small
+  backend: local        # or a cloud runner, chosen here not baked in
+  cycle: 3
+  parity_threshold: 0.98
+
+workflow:
+  - step: start
+    tool: { kind: noop }
+  - step: curate_dataset
+    tool: { kind: python }
+  - step: train_adapter
+    tool: { kind: playbook }      # pluggable backend
+  - step: evaluate_golden_set
+    tool: { kind: python }
+  - step: schema_parity_gate
+    tool: { kind: python }
+  - step: decide_promotion
+    tool: { kind: python }
+  - step: register_model
+    tool: { kind: playbook }      # model registry
+  - step: queue_next_cycle
+    tool: { kind: python }        # failures become cycle 4 data
+  - step: end
+    tool: { kind: noop }`,
+    steps: [
+      { step: "start", tool: "noop", note: "entry point" },
+      { step: "curate_dataset", tool: "python", note: "gather, deduplicate, split, and version the data",
+        out: "18.4k examples, deduped to 16.1k, split 90 / 5 / 5" },
+      { step: "train_adapter", tool: "playbook · pluggable backend", note: "adapter on a small base model, not a full retrain",
+        out: "adapter trained on gemma-small, 2 epochs" },
+      { step: "evaluate_golden_set", tool: "python", note: "score against a held out golden set",
+        out: "scored on 640 held out examples (illustrative)" },
+      { step: "schema_parity_gate", tool: "python", note: "does structured output still match the schema",
+        out: "parity 0.982 against a 0.98 threshold" },
+      { step: "decide_promotion", tool: "python", note: "gate decides, and it can say no",
+        out: "gate passed, 2 categories still below target" },
+      { step: "register_model", tool: "playbook · model registry", note: "version, provenance, and the eval that justified it",
+        out: "registered as cycle 3, previous stays rollback ready" },
+      { step: "queue_next_cycle", tool: "python", note: "the weak categories become the next dataset",
+        out: "cycle 4 queued from 2 weak categories" },
+      { step: "end", tool: "noop" },
+    ],
+    result: [
+      ["cycle", "3 of an ongoing loop, not a one off job"],
+      ["training", "adapter on a small base model, 16.1k curated examples"],
+      ["gate", "schema parity 0.982 against a 0.98 threshold (illustrative)"],
+      ["promotion", "registered with the eval that justified it, prior version kept"],
+      ["next cycle", "the 2 categories that scored worst become cycle 4 data"],
+    ],
+    caveat: "Simulated training cycle, not a benchmark. Every number above is invented to show the loop, and none of them is a measurement of any model. A real cycle keeps a person in the loop at the promotion gate: an eval score is evidence for a decision, not the decision itself.",
+  },
+  {
     id: "quantum",
     label: "Quantum",
     kind: "external",
