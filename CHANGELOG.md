@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.12.0](https://github.com/noetl/gui/compare/v1.11.1...v1.12.0) (2026-09-24)
+
+### Features
+
+* **gui:** EHDB record browser + pre-flight for the silent playbook stalls ([7d23dee](https://github.com/noetl/gui/commit/7d23dee1e089a5b9a0ab50d3089a4e679601aa64)), closes [adiona/frontend#29](https://github.com/adiona/frontend/issues/29)
+* **landing:** A2A agent-mesh showcase + saqbit quantum link-out ([b220ca6](https://github.com/noetl/gui/commit/b220ca6962bef33b21d6afc174a92f4e825286ca))
+* **landing:** A2A tile links straight to the architecture wiki ([5e46466](https://github.com/noetl/gui/commit/5e464668effff472960ac303aa6412017ab68187))
+* **landing:** add the drug design showcase tile ([1817db8](https://github.com/noetl/gui/commit/1817db85a273c529d726ca9bb11a0f72ccbf8067))
+* **landing:** add the security and compliance showcase tile ([062ed60](https://github.com/noetl/gui/commit/062ed600125f507fb1f0e4d4053015da29add9d8))
+* **landing:** add the SLM training cycle tile, completing the showcase at ten ([2813948](https://github.com/noetl/gui/commit/2813948bf40832bb1609b9a73d37144bed9e66aa))
+* **landing:** analysis-grade intake questionnaires — and commit the site ([c38681f](https://github.com/noetl/gui/commit/c38681fc2c95f97212d8d087860895639a12e733))
+* **landing:** Console entry pointing at the real product ([ee7c20c](https://github.com/noetl/gui/commit/ee7c20c2bf4a0717798adebf9fe6629306f3299e))
+* **landing:** noetl.ai public landing — simulated demo, waitlist, feedback ([d88bcd7](https://github.com/noetl/gui/commit/d88bcd710fcb9627b21e53ac369e2806113f3b79))
+* **landing:** text to playbook, a featured authoring chat ([5579168](https://github.com/noetl/gui/commit/5579168eb4145afde49633bd9f672e2a7cfaa4e0))
+
+### Bug Fixes
+
+* **landing:** derive A2A weights from signal counts, drop dead confidence, add a cyber example ([3476de3](https://github.com/noetl/gui/commit/3476de34955d15aa1ed9e7ba1321009b62ee8176))
+* **landing:** the console lives at console.noetl.ai, not gui.noetl.ai ([fe821ca](https://github.com/noetl/gui/commit/fe821ca3974f8463afcaf423df226b2fbba5391b))
+
 ## [1.11.1](https://github.com/noetl/gui/compare/v1.11.0...v1.11.1) (2026-06-10)
 
 ### Bug Fixes
