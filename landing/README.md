@@ -182,6 +182,26 @@ change that breaks one is a change worth rejecting:
 
 Nothing is scanned and no system is touched. Every count is invented.
 
+## The SLM training tile
+
+Shows fine-tuning as a LOOP rather than a one-off job, because that is the
+part people get wrong: curate, train an adapter, evaluate, hold at a parity
+gate, register, and feed the weakest categories into the next cycle. The
+result rows name the cycle number and say where cycle 4's data comes from, so
+the iteration is visible rather than implied.
+
+Shape grounded in the real SLM work: small Gemma-class base models, a
+pluggable backend selected by the playbook rather than baked into the image,
+adapters instead of full retrains, a schema parity check on structured output,
+and a model registry that records what was promoted and why.
+
+⚠ **Every number is invented.** No score in this tile is a measurement of any
+model. Publishing a made-up eval number as though it were real is the easiest
+way to mislead in this domain, so the tile shows the shape of a gate and says
+plainly that the values are illustrative. The caveat also states that a real
+cycle keeps a person at the promotion gate: an eval score is evidence for a
+decision, not the decision itself.
+
 ## Copy rule: no dashes
 
 The site copy uses no em-dashes (U+2014), no en-dashes (U+2013), and no spaced

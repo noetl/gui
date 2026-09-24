@@ -20,7 +20,8 @@
 
 const DOMAINS = [
   "Agent mesh (A2A)", "Travel", "Trading", "Healthcare", "Drug design",
-  "Call centre", "SRE / platform", "Security & compliance", "Quantum", "Other",
+  "Call centre", "SRE / platform", "Security & compliance", "SLM training",
+  "Quantum", "Other",
 ];
 
 window.NOETL_FORMS = {
