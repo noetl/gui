@@ -217,6 +217,40 @@ moment the CNAME exists:
 ./stamp.sh && npx wrangler pages deploy public --project-name noetl-ai --branch main
 ```
 
+## A2A tile: population weights, and two worked examples
+
+⚠ **Weights are derived from signal counts. Never write a constant.**
+
+The blueprint gives a tier-0 agent one job: emit "a reduced value AND its
+population weight". An aggregator weights each child by how many signals that
+child summarises, and the rule the design calls its most important one is that
+skipping a tier "silently corrupts the population weights, and the result
+looks entirely reasonable".
+
+An earlier version of this tile hard-coded 0.6/0.4 and 0.7/0.3. The numbers
+looked right and the demo contradicted the invariant it was showcasing. Those
+same figures now fall out of the counts:
+
+```
+industrial  temp 840/1400 = 0.60, vibration 560/1400 = 0.40  -> 60.0
+            tier 2: 1400/2000 = 0.70, 600/2000 = 0.30        -> 52.5
+cyber       network 1200/2000 = 0.60, endpoint 800/2000 = 0.40 -> 64.0
+            tier 2: 2000/3000 = 0.667, 1000/3000 = 0.333     -> 60.0
+```
+
+If you change a population, change nothing else. The weights and the verdict
+must follow from it, and a reader can check the arithmetic on screen.
+
+⚠ **No confidence scores.** A previous version printed a per-agent confidence
+that nothing consumed. A number on screen that feeds no decision is noise
+dressed as rigour, and the blueprint has no such field. What a tier-0 agent
+actually publishes next to its value is the population weight, so that is what
+is shown.
+
+Two scenarios share one player: industrial telemetry and a security detection
+(network, endpoint and identity correlating into one verdict). Same cascade,
+same rule, different signal classes, which is the point.
+
 ## Copy rule: no dashes
 
 The site copy uses no em-dashes (U+2014), no en-dashes (U+2013), and no spaced

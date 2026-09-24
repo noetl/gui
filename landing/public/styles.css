@@ -291,3 +291,16 @@ h1, h2, h3, h4 { line-height: 1.25; margin: 0; }
 .cc-title { display: block; font-size: 19px; font-weight: 650; color: var(--fg); margin-bottom: 7px; }
 .cc-mark { font-size: 14px; opacity: .8; }
 .cc-desc { display: block; color: var(--fg-2); font-size: 14.5px; max-width: 74ch; }
+
+/* ── worked-example switcher on the mesh tile ── */
+.scenario-tabs { display: flex; flex-wrap: wrap; gap: 9px; margin-bottom: 14px; }
+.scenario-tab {
+  flex: 1 1 260px; text-align: left; padding: 11px 14px; border-radius: 9px;
+  border: 1px solid var(--line-2); background: var(--bg-2); color: var(--fg-2);
+  font: inherit; cursor: pointer; transition: border-color .12s, background .12s;
+}
+.scenario-tab:hover { border-color: var(--fg-3); color: var(--fg); }
+.scenario-tab.active { border-color: var(--accent); background: rgba(93,214,160,.08); }
+.st-label { display: block; font-weight: 640; font-size: 14.5px; color: var(--fg); margin-bottom: 2px; }
+.scenario-tab.active .st-label { color: var(--accent); }
+.st-blurb { display: block; font-size: 12.5px; color: var(--fg-3); }

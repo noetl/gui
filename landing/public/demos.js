@@ -22,39 +22,50 @@ window.NOETL_DEMOS = [
     kind: "mesh",
     title: "Tiered A2A / ReAct signal mesh",
     desc: "Thousands of devices, no single model that can reason over all of them. A hierarchy of small reasoners each takes a narrow slice, decides, and publishes a reduced value upward, ending in one number and one boolean that can be replayed rather than trusted.",
-    /* Modelled on the real signal-mesh blueprint (noetl/signal-mesh wiki):
-       tier 0 raw ReAct agents per signal class, tier 1 specialized
-       aggregators, tier 2 synthesizer emitting a numeric definition-function
-       plus a boolean. Agent discovery is A2A, via an Agent Card served at
-       /.well-known/agent-card.json and registered in the noetl catalog. */
-    /* "Learn more" targets for this tile.
+    /* Modelled on the real signal-mesh blueprint (noetl/signal-mesh wiki).
      *
-     * ⚠ EVERY ENTRY MUST RESOLVE BEFORE IT SHIPS. A landing page for a
-     * pre-launch product is already asking for trust on credit; a 404 behind
-     * "read the architecture" spends it. Both entries below were checked for
-     * HTTP 200 at build time.
+     * ⚠ WEIGHTS ARE DERIVED FROM POPULATION COUNTS, NEVER CONSTANTS.
+     * The blueprint gives a tier-0 agent one job: emit "a reduced value AND
+     * its population weight". An aggregator then weights its children by how
+     * many signals each of them summarises. The rule it calls the single most
+     * important one is that each tier reduces only the tier directly below,
+     * because skipping a tier "silently corrupts the population weights, and
+     * the result looks entirely reasonable".
      *
-     * The canonical A2A page on noetl.dev is not published yet. The docs
-     * sitemap lists 261 URLs and none of them is an A2A/signal-mesh page. When
-     * it lands, add it here as `{ href, label: "Read the docs", kind: "docs" }`
-     * and verify 200 first. Deliberately absent rather than guessed: linking a
-     * plausible-looking /docs/a2a that 404s is worse than linking nothing. */
+     * An earlier version of this tile hard-coded 0.6/0.4 and 0.7/0.3. The
+     * numbers looked right and the demo contradicted the one invariant the
+     * design is proud of. Those same figures now FALL OUT of the counts, and
+     * the counts are shown, so a reader can check the arithmetic instead of
+     * taking a constant on faith. If you change a population, change nothing
+     * else: the weights and the verdict must follow from it.
+     *
+     * ⚠ NO CONFIDENCE SCORES. A previous version printed a per-agent
+     * confidence that nothing consumed. A number on screen that feeds no
+     * decision is noise dressed as rigour, and the blueprint has no such
+     * field. What a tier-0 agent actually publishes alongside its value is
+     * the population weight, so that is what is shown. */
+    moreLinksShared: true,
     links: [
       { href: "https://github.com/noetl/signal-mesh/wiki/Architecture-Blueprint",
         label: "Read the architecture", kind: "blueprint" },
       { href: "https://github.com/noetl/signal-mesh/wiki",
         label: "Browse the wiki", kind: "wiki" },
     ],
-    rule: "Each tier reduces only the tier directly below it. An aggregator that reaches past its tier to touch raw signals has skipped a level and broken the weights.",
-    cards: [
-      { name: "agent.temp",       tier: "tier 0", skill: "observe → reason → act", reduces: "device 01 · temp" },
-      { name: "agent.vibration",  tier: "tier 0", skill: "observe → reason → act", reduces: "device 02 · vibration" },
-      { name: "agent.pressure",   tier: "tier 0", skill: "observe → reason → act", reduces: "device N · pressure" },
-      { name: "agent.site-health", tier: "tier 1", skill: "weighted mean",  reduces: "tier 0 · temp, vibration" },
-      { name: "agent.asset-risk",  tier: "tier 1", skill: "max",            reduces: "tier 0 · pressure" },
-      { name: "agent.synthesizer", tier: "tier 2", skill: "definition-function + threshold", reduces: "tier 1 · all aggregators" },
-    ],
-    yaml: `metadata:
+    rule: "Each tier reduces only the tier directly below it, and weights each child by the number of signals that child summarises. An aggregator that reaches past its tier to touch raw signals corrupts the population weights, and the wrong answer still looks reasonable.",
+    scenarios: [
+      {
+        id: "industrial",
+        label: "Industrial telemetry",
+        blurb: "Temperature, vibration and pressure across a plant, reduced to one site verdict.",
+        cards: [
+          { name: "agent.temp",        tier: "tier 0", skill: "observe, reason, act", reduces: "temp class, 840 signals" },
+          { name: "agent.vibration",   tier: "tier 0", skill: "observe, reason, act", reduces: "vibration class, 560 signals" },
+          { name: "agent.pressure",    tier: "tier 0", skill: "observe, reason, act", reduces: "pressure class, 600 signals" },
+          { name: "agent.site-health", tier: "tier 1", skill: "population weighted mean", reduces: "tier 0, temp + vibration" },
+          { name: "agent.asset-risk",  tier: "tier 1", skill: "max over its slice",     reduces: "tier 0, pressure" },
+          { name: "agent.synthesizer", tier: "tier 2", skill: "definition function + threshold", reduces: "tier 1, all aggregators" },
+        ],
+        yaml: `metadata:
   name: signal-mesh-cascade
   path: demo/a2a/signal-mesh
   version: "1.0"
@@ -64,53 +75,136 @@ workload:
   window_s: 60
   threshold: 50.0
 
-# Discovery is A2A: each agent publishes an Agent Card at
-# /.well-known/agent-card.json and registers the same content
-# in the noetl catalog. Work between tiers is an A2A Task
-# { id, from, to, state }.
+# Every agent publishes {value, population}. An aggregator derives
+# each child's weight as population / sum(populations). No constants.
 
 workflow:
   - step: collect
-    tool: { kind: http }          # collector shards A + B
+    tool: { kind: http }
   - step: tier0_react
-    tool: { kind: playbook }      # raw ReAct agents
+    tool: { kind: playbook }
   - step: tier1_aggregate
-    tool: { kind: playbook }      # specialized aggregators
+    tool: { kind: playbook }
   - step: tier2_synthesize
-    tool: { kind: python }        # numeric definition-function
+    tool: { kind: python }
   - step: emit_verdict
     tool: { kind: noop }`,
-    steps: [
-      { step: "collect", tool: "http · collector shards", note: "sharded by device / region",
-        out: "3 signal classes · 1,284 samples in 60s window" },
-      { step: "tier0_react", tool: "playbook · agent.temp", tier: "tier 0",
-        reason: "temp 74.2°C, 8.1 above the 60s rolling mean, sustained rather than a spike",
-        act: "publish reduced value 68.0 (confidence 0.88)", out: "temp → 68.0" },
-      { step: "tier0_react", tool: "playbook · agent.vibration", tier: "tier 0",
-        reason: "RMS within band but third harmonic rising across the window",
-        act: "publish reduced value 48.0 (confidence 0.71)", out: "vibration → 48.0" },
-      { step: "tier0_react", tool: "playbook · agent.pressure", tier: "tier 0",
-        reason: "2.1 bar below setpoint and recovering, so no trip condition",
-        act: "publish reduced value 35.0 (confidence 0.93)", out: "pressure → 35.0" },
-      { step: "tier1_aggregate", tool: "playbook · agent.site-health", tier: "tier 1",
-        reason: "weighted mean over tier 0 only: 0.6·68.0 + 0.4·48.0",
-        act: "publish 60.0", out: "site-health → 60.0" },
-      { step: "tier1_aggregate", tool: "playbook · agent.asset-risk", tier: "tier 1",
-        reason: "max over its slice; pressure alone is the risk input",
-        act: "publish 35.0", out: "asset-risk → 35.0" },
-      { step: "tier2_synthesize", tool: "python · agent.synthesizer", tier: "tier 2",
-        reason: "definition-function over tier 1 only: 0.7·60.0 + 0.3·35.0",
-        act: "score 52.5, threshold 50.0 → true", out: "52.5 · true" },
-      { step: "emit_verdict", tool: "noop", note: "verdict appended to the event log", out: "replayable from D1" },
+        steps: [
+          { step: "collect", tool: "http, collector shards", note: "sharded by device and region",
+            out: "3 signal classes, 2,000 signals in the 60s window" },
+          { step: "tier0_react", tool: "playbook, agent.temp", tier: "tier 0",
+            reason: "74.2C, 8.1 above the rolling mean, sustained rather than a spike",
+            act: "publish value 68.0 with population 840",
+            out: "temp 68.0, pop 840" },
+          { step: "tier0_react", tool: "playbook, agent.vibration", tier: "tier 0",
+            reason: "RMS within band but third harmonic rising across the window",
+            act: "publish value 48.0 with population 560",
+            out: "vibration 48.0, pop 560" },
+          { step: "tier0_react", tool: "playbook, agent.pressure", tier: "tier 0",
+            reason: "2.1 bar below setpoint and recovering, so no trip condition",
+            act: "publish value 35.0 with population 600",
+            out: "pressure 35.0, pop 600" },
+          { step: "tier1_aggregate", tool: "playbook, agent.site-health", tier: "tier 1",
+            reason: "weights from counts: 840/1400 = 0.60 temp, 560/1400 = 0.40 vibration",
+            act: "0.60 x 68.0 + 0.40 x 48.0 = 60.0, population 1400",
+            out: "site-health 60.0, pop 1400" },
+          { step: "tier1_aggregate", tool: "playbook, agent.asset-risk", tier: "tier 1",
+            reason: "max over its slice, so pressure alone carries it",
+            act: "publish 35.0, population 600",
+            out: "asset-risk 35.0, pop 600" },
+          { step: "tier2_synthesize", tool: "python, agent.synthesizer", tier: "tier 2",
+            reason: "weights from counts: 1400/2000 = 0.70, 600/2000 = 0.30",
+            act: "0.70 x 60.0 + 0.30 x 35.0 = 52.5, threshold 50.0, so true",
+            out: "52.5, true" },
+          { step: "emit_verdict", tool: "noop", note: "verdict appended to the event log", out: "replayable from D1" },
+        ],
+        result: [
+          ["verdict", "52.5, true"],
+          ["threshold", "50.0, exceeded"],
+          ["tier 2 weights", "1400/2000 = 0.70 and 600/2000 = 0.30, from the counts"],
+          ["tier 1 inputs", "site-health 60.0 (pop 1400), asset-risk 35.0 (pop 600)"],
+          ["tier 0 inputs", "temp 68.0 (840), vibration 48.0 (560), pressure 35.0 (600)"],
+          ["provenance", "every reasoning step appended to EHDB, so it can be replayed rather than trusted"],
+        ],
+      },
+      {
+        id: "cyber",
+        label: "Security detection",
+        blurb: "Network, endpoint and identity signals correlating into one detection verdict.",
+        cards: [
+          { name: "agent.network",       tier: "tier 0", skill: "observe, reason, act", reduces: "netflow and DNS, 1,200 signals" },
+          { name: "agent.endpoint",      tier: "tier 0", skill: "observe, reason, act", reduces: "EDR telemetry, 800 signals" },
+          { name: "agent.identity",      tier: "tier 0", skill: "observe, reason, act", reduces: "auth events, 1,000 signals" },
+          { name: "agent.host-exposure", tier: "tier 1", skill: "population weighted mean", reduces: "tier 0, network + endpoint" },
+          { name: "agent.account-risk",  tier: "tier 1", skill: "max over its slice",     reduces: "tier 0, identity" },
+          { name: "agent.synthesizer",   tier: "tier 2", skill: "definition function + threshold", reduces: "tier 1, all aggregators" },
+        ],
+        yaml: `metadata:
+  name: signal-mesh-detection
+  path: demo/a2a/signal-mesh-cyber
+  version: "1.0"
+
+workload:
+  estate: corp-east
+  window_s: 300
+  threshold: 50.0
+
+# Same shape, different signal classes. Weights still come from
+# population counts, never from a tuned constant.
+
+workflow:
+  - step: collect
+    tool: { kind: http }
+  - step: tier0_react
+    tool: { kind: playbook }
+  - step: tier1_aggregate
+    tool: { kind: playbook }
+  - step: tier2_synthesize
+    tool: { kind: python }
+  - step: emit_verdict
+    tool: { kind: noop }`,
+        steps: [
+          { step: "collect", tool: "http, collector shards", note: "sharded by segment and estate",
+            out: "3 signal classes, 3,000 signals in the 300s window" },
+          { step: "tier0_react", tool: "playbook, agent.network", tier: "tier 0",
+            reason: "repeated beaconing to one newly registered domain, low jitter, off hours",
+            act: "publish value 72.0 with population 1200",
+            out: "network 72.0, pop 1200" },
+          { step: "tier0_react", tool: "playbook, agent.endpoint", tier: "tier 0",
+            reason: "a signed binary spawning an unusual child process on four hosts",
+            act: "publish value 52.0 with population 800",
+            out: "endpoint 52.0, pop 800" },
+          { step: "tier0_react", tool: "playbook, agent.identity", tier: "tier 0",
+            reason: "one account authenticating from two regions inside eleven minutes",
+            act: "publish value 52.0 with population 1000",
+            out: "identity 52.0, pop 1000" },
+          { step: "tier1_aggregate", tool: "playbook, agent.host-exposure", tier: "tier 1",
+            reason: "weights from counts: 1200/2000 = 0.60 network, 800/2000 = 0.40 endpoint",
+            act: "0.60 x 72.0 + 0.40 x 52.0 = 64.0, population 2000",
+            out: "host-exposure 64.0, pop 2000" },
+          { step: "tier1_aggregate", tool: "playbook, agent.account-risk", tier: "tier 1",
+            reason: "max over its slice, so the impossible travel case carries it",
+            act: "publish 52.0, population 1000",
+            out: "account-risk 52.0, pop 1000" },
+          { step: "tier2_synthesize", tool: "python, agent.synthesizer", tier: "tier 2",
+            reason: "weights from counts: 2000/3000 = 0.667, 1000/3000 = 0.333",
+            act: "0.667 x 64.0 + 0.333 x 52.0 = 60.0, threshold 50.0, so true",
+            out: "60.0, true" },
+          { step: "emit_verdict", tool: "noop", note: "detection raised with its whole derivation attached",
+            out: "one detection, replayable to the signal" },
+        ],
+        result: [
+          ["verdict", "60.0, true, detection raised"],
+          ["threshold", "50.0, exceeded"],
+          ["tier 2 weights", "2000/3000 = 0.667 and 1000/3000 = 0.333, from the counts"],
+          ["tier 1 inputs", "host-exposure 64.0 (pop 2000), account-risk 52.0 (pop 1000)"],
+          ["tier 0 inputs", "network 72.0 (1200), endpoint 52.0 (800), identity 52.0 (1000)"],
+          ["for the analyst", "the score is a triage order, not a conclusion, and every step is readable"],
+        ],
+        caveat: "Simulated detection, not a security product. The signals, scores and the verdict are invented to show how the cascade composes. A real deployment puts an analyst at the end of it: a score like this orders a queue, it does not decide that an incident occurred.",
+      },
     ],
-    result: [
-      ["verdict", "52.5 · true"],
-      ["threshold", "50.0, exceeded"],
-      ["tier 1 inputs", "site-health 60.0 · asset-risk 35.0 · weights 0.7 / 0.3"],
-      ["tier 0 inputs", "temp 68.0 · vibration 48.0 · pressure 35.0"],
-      ["provenance", "every reasoning step appended to EHDB, so it can be replayed rather than trusted"],
-    ],
-    caveat: "Design and POC. The signal-mesh is not deployed, so these agents, signals and the verdict are illustrative. The numbers are arranged to show the cascade, not measured.",
+    caveat: "Design and POC. The signal-mesh is not deployed, so these agents, signals and the verdict are illustrative. The numbers are arranged to show the cascade, not measured, but the arithmetic is real: every weight below is the child's signal count divided by the total, so you can check it.",
   },
   {
     id: "travel",
