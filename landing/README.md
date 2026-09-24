@@ -114,6 +114,30 @@ mints a new id. Measured before the fix: 12 partial rows for one run.
 Scope is market intent only. Nothing asks for health, financial or otherwise
 sensitive data, and nothing should start.
 
+## "Learn more" links on the A2A tile
+
+Rendered from `links: []` in the tile's spec (`demos.js`), not hard-coded in
+the DOM, so adding one is a one-line change.
+
+⚠ **Every entry must resolve before it ships.** A landing page for a
+pre-launch product is already asking for trust on credit; a 404 behind "read
+the architecture" spends it. Verify with:
+
+```sh
+curl -s -o /dev/null -w '%{http_code}\n' -L <url>
+```
+
+Currently live: the signal-mesh **Architecture Blueprint** and the **wiki
+root**, both 200.
+
+**Not yet linked: the canonical A2A page on noetl.dev.** It is not published —
+the noetl.dev sitemap lists 261 URLs and none is an A2A or signal-mesh page,
+and `noetl/docs` has no such file on `main` or on any open PR branch. When it
+lands, add it to that `links` array as
+`{ href, label: "Read the docs", kind: "docs" }` and confirm 200 first. It is
+deliberately absent rather than guessed: a plausible-looking `/docs/a2a` that
+404s is worse than no link at all.
+
 ## Storage
 
 Both Functions write to the KV namespace bound as `WAITLIST`

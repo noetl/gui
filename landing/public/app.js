@@ -92,13 +92,22 @@
     });
     const ruleEl = document.querySelector(".mesh-rule");
     if (ruleEl) { ruleEl.textContent = d.rule || ""; ruleEl.hidden = !d.rule; }
+    // "Learn more" targets. Rendered from the spec so adding the noetl.dev
+    // A2A page later is a one-line change in demos.js, not a DOM edit here.
     const moreEl = document.querySelector(".mesh-more");
     if (moreEl) {
-      if (d.moreHref) {
-        moreEl.href = d.moreHref;
-        moreEl.textContent = d.moreLabel || "Read more";
-        moreEl.hidden = false;
-      } else moreEl.hidden = true;
+      const links = d.links || [];
+      moreEl.innerHTML = "";
+      links.forEach(l => {
+        const a = document.createElement("a");
+        a.className = "mesh-link mesh-link-" + (l.kind || "more");
+        a.href = l.href;
+        a.rel = "noopener";
+        a.innerHTML = '<span class="ml-label"></span><span class="ml-mark" aria-hidden="true">↗</span>';
+        a.querySelector(".ml-label").textContent = l.label;
+        moreEl.appendChild(a);
+      });
+      moreEl.hidden = links.length === 0;
     }
     pane.hidden = false;
   }
