@@ -36,6 +36,36 @@ functions/api/ Cloudflare Pages Functions
 There is no bundler. The page is small enough that a build step would add a
 failure mode without buying anything.
 
+## Showcase tiles
+
+Seven tiles, two kinds:
+
+- **Simulated** (A2A agent mesh, travel, trading, healthcare, call centre, SRE)
+  — canned walkthroughs, described below.
+- **External** (Quantum) — renders as a dashed anchor with an `↗` marker and
+  opens the live [saqbit.com](https://saqbit.com) demo instead of simulating
+  anything. It is a link because it behaves like one; styling it as a tab
+  would imply an in-page simulation that does not exist.
+
+The **A2A agent mesh** tile leads and is selected by default. It models the
+real [signal-mesh blueprint](https://github.com/noetl/signal-mesh/wiki/Architecture-Blueprint):
+tier-0 ReAct agents per signal class, tier-1 specialized aggregators, a tier-2
+synthesizer emitting one number and one boolean, with Agent Cards for A2A
+discovery and the load-bearing rule that each tier reduces only the tier
+directly below it.
+
+⚠ **Its arithmetic must actually compute.** The page sells auditability, so a
+reader who checks the weights has to find them consistent:
+
+```
+tier 1  site-health = 0.6·68.0 + 0.4·48.0 = 60.0
+tier 1  asset-risk  = max over its slice  = 35.0
+tier 2  score       = 0.7·60.0 + 0.3·35.0 = 52.5   > threshold 50.0 -> true
+```
+
+The first draft had weights that produced 52.05 while displaying 52.5. If you
+change any published value, re-check the chain.
+
 ## The demo is simulated, and says so
 
 Nothing in `demos.js` executes. Each domain is a hand-written playbook plus
