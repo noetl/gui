@@ -27,8 +27,24 @@ window.NOETL_DEMOS = [
        aggregators, tier 2 synthesizer emitting a numeric definition-function
        plus a boolean. Agent discovery is A2A — an Agent Card served at
        /.well-known/agent-card.json and registered in the noetl catalog. */
-    moreHref: "https://github.com/noetl/signal-mesh/wiki/Architecture-Blueprint",
-    moreLabel: "Read the architecture blueprint",
+    /* "Learn more" targets for this tile.
+     *
+     * ⚠ EVERY ENTRY MUST RESOLVE BEFORE IT SHIPS. A landing page for a
+     * pre-launch product is already asking for trust on credit; a 404 behind
+     * "read the architecture" spends it. Both entries below were checked for
+     * HTTP 200 at build time.
+     *
+     * The canonical A2A page on noetl.dev is not published yet — the docs
+     * sitemap lists 261 URLs and none of them is an A2A/signal-mesh page. When
+     * it lands, add it here as `{ href, label: "Read the docs", kind: "docs" }`
+     * and verify 200 first. Deliberately absent rather than guessed: linking a
+     * plausible-looking /docs/a2a that 404s is worse than linking nothing. */
+    links: [
+      { href: "https://github.com/noetl/signal-mesh/wiki/Architecture-Blueprint",
+        label: "Read the architecture", kind: "blueprint" },
+      { href: "https://github.com/noetl/signal-mesh/wiki",
+        label: "Browse the wiki", kind: "wiki" },
+    ],
     rule: "Each tier reduces only the tier directly below it. An aggregator that reaches past its tier to touch raw signals has skipped a level and broken the weights.",
     cards: [
       { name: "agent.temp",       tier: "tier 0", skill: "observe → reason → act", reduces: "device 01 · temp" },
