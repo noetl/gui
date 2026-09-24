@@ -6,7 +6,7 @@
 <title>NoETL: automation playbooks, coming January 2027</title>
 <meta name="description" content="NoETL runs declarative playbooks across travel, trading, healthcare, drug design, call centre, SRE, security and compliance, and small model training workloads. Coming January 2027. Try the simulated demo and join the waitlist." />
 <meta name="robots" content="index, follow" />
-<link rel="stylesheet" href="./styles.css?v=d8eb32524c" />
+<link rel="stylesheet" href="./styles.css?v=7a08fdba18" />
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -46,6 +46,37 @@
       <strong>simulation</strong>. It runs entirely in your browser and touches no live
       system.
     </p>
+  </section>
+
+  <!-- ─────────────── TEXT TO PLAYBOOK ─────────────── -->
+  <section class="section wrap forge-section" id="compose">
+    <div class="section-head">
+      <h2>Describe it, get a playbook</h2>
+      <span class="sim-badge" title="No model is called. Each answer is written in advance and runs entirely in your browser.">AI generated, simulated</span>
+    </div>
+    <p class="section-sub">
+      Say what you want in plain language. The assistant writes a NoETL playbook for it, and you can run
+      the result right here. Pick a starting point or type your own. Nothing is sent anywhere: the replies
+      are written in advance, so this previews the capability rather than calling a live model.
+    </p>
+
+    <div class="forge">
+      <div class="forge-head">
+        <span class="forge-title">text to playbook</span>
+        <span class="forge-flag">AI generated, simulated</span>
+      </div>
+      <div class="forge-log" aria-live="polite"></div>
+      <div class="forge-chips" role="group" aria-label="Suggested prompts"></div>
+      <form class="forge-input">
+        <label class="visually-hidden" for="forge-field">Describe what you want</label>
+        <input id="forge-field" class="forge-field" type="text" autocomplete="off"
+               placeholder="Describe a workflow, for example: triage incidents and pull the runbook" />
+        <button class="btn btn-primary" type="submit">Generate</button>
+      </form>
+      <p class="forge-foot">
+        Ten domains have prepared answers. <button type="button" class="linklike js-forge-reset">Start over</button>
+      </p>
+    </div>
   </section>
 
   <!-- ─────────────── DEMO ─────────────── -->
@@ -230,7 +261,8 @@
 </footer>
 
 <script src="./demos.js?v=e8b287fc2e"></script>
+<script src="./forge.js?v=0964c4155a"></script>
 <script src="./forms.js?v=78b178b2c2"></script>
-<script src="./app.js?v=4079f69d60"></script>
+<script src="./app.js?v=6679e038ce"></script>
 </body>
 </html>

@@ -15,7 +15,11 @@
 set -euo pipefail
 cd "$(dirname "$0")/public"
 
-for f in styles.css demos.js forms.js app.js; do
+# ⚠ Every asset index.html references must be listed here. forge.js was added
+# to the page and not to this loop, so it shipped unversioned once: returning
+# visitors would have kept a stale copy for four hours. If you add a script or
+# stylesheet, add it here in the same commit.
+for f in styles.css demos.js forge.js forms.js app.js; do
   h=$(shasum -a 256 < "$f" | cut -c1-10)
   # Replace the existing reference, with or without a previous ?v= stamp.
   perl -0pi -e "s{(src|href)=\"\./${f}(\?v=[0-9a-f]+)?\"}{\$1=\"./${f}?v=${h}\"}g" index.html
