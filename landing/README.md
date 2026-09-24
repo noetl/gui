@@ -251,6 +251,33 @@ Two scenarios share one player: industrial telemetry and a security detection
 (network, endpoint and identity correlating into one verdict). Same cascade,
 same rule, different signal classes, which is the point.
 
+## Text to playbook (the forge)
+
+A featured section above the ten tiles: describe a workflow, get a NoETL
+playbook, press Run and watch it execute. Prompt, playbook, run and result all
+happen in one chat.
+
+⚠ **No model, no network.** Every reply lives in `forge.js`. The section is
+labelled "AI generated, simulated" in two places, because a chat that looks
+like an LLM and is not is the single easiest thing on this site to be caught
+overstating.
+
+⚠ **The generated playbook is assembled from the SAME steps that then run.**
+`buildPlaybook()` reads the matching tile's step list and renders YAML from
+it, so Run executes exactly what was shown. A demo that displayed one playbook
+and ran another would be a lie told in two parts. Quantum is the one domain
+with its own cascade in `forge.js`, because its tile links out to saqbit
+rather than simulating.
+
+Generated playbooks carry `metadata.version`. That is not decoration: without
+it a playbook registers and then never dispatches, which is the trap the
+console pre-flight also catches. Emitting one without it would be shipping a
+broken example.
+
+Free text is routed by keyword. When nothing matches, the assistant says so
+and points at the suggestions rather than guessing, because a canned demo that
+pretends to understand arbitrary input is the same overclaim in a smaller box.
+
 ## Copy rule: no dashes
 
 The site copy uses no em-dashes (U+2014), no en-dashes (U+2013), and no spaced

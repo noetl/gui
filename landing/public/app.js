@@ -474,6 +474,240 @@
     ask();
   }
 
+  // ─────────────────── text to playbook ───────────────────
+  //
+  // ⚠ NO MODEL, NO NETWORK. Every reply is written in advance in forge.js.
+  // The playbook the assistant "writes" is assembled from the SAME step list
+  // the matching showcase tile runs, so Run executes exactly what was shown.
+  // A demo that displayed one playbook and ran another would be a lie told in
+  // two parts, and this page has spent a lot of effort not doing that.
+
+  const FORGE = window.NOETL_FORGE || null;
+
+  /** The step list and result for a domain: the tile's own, or the forge
+   *  entry's when the tile has none (quantum links out instead of running). */
+  function forgeCascade(entry) {
+    if (entry.steps) return { steps: entry.steps, result: entry.result, caveat: entry.caveat };
+    const tile = (window.NOETL_DEMOS || []).find(d => d.id === entry.id);
+    if (!tile) return { steps: [], result: [] };
+    const v = tile.scenarios && tile.scenarios.length
+      ? Object.assign({}, tile, tile.scenarios[0])
+      : tile;
+    return { steps: v.steps || [], result: v.result || [], caveat: v.caveat };
+  }
+
+  /** Tool kind for a step, read off the demo's own tool string. */
+  function toolKind(step) {
+    const first = String(step.tool || "noop").split(/[\s,]+/)[0].toLowerCase();
+    return ["noop", "python", "playbook", "http", "postgres", "duckdb"].includes(first) ? first : "python";
+  }
+
+  /** Render the playbook YAML from the steps that will actually run. */
+  function buildPlaybook(entry) {
+    const { steps } = forgeCascade(entry);
+    const lines = [];
+    lines.push("metadata:");
+    lines.push("  name: " + entry.path.split("/").pop());
+    lines.push("  path: " + entry.path);
+    // metadata.version is not decoration: without it a playbook registers and
+    // then never dispatches, which is the trap the console's pre-flight also
+    // catches. A generated playbook that omitted it would be broken on arrival.
+    lines.push('  version: "1.0"');
+    lines.push("");
+    lines.push("workload:");
+    Object.entries(entry.workload || {}).forEach(([k, v]) => {
+      lines.push("  " + k + ": " + (typeof v === "string" ? v : String(v)));
+    });
+    lines.push("");
+    lines.push("workflow:");
+    const names = steps.map(s => s.step);
+    steps.forEach((s, i) => {
+      lines.push("  - step: " + s.step);
+      if (s.note) lines.push("    desc: " + s.note);
+      lines.push("    tool: { kind: " + toolKind(s) + " }");
+      const next = names[i + 1];
+      if (next) {
+        lines.push("    next:");
+        lines.push("      spec: { mode: exclusive }");
+        lines.push("      arcs:");
+        lines.push("        - step: " + next);
+      }
+    });
+    return lines.join("\n");
+  }
+
+  if (FORGE) {
+    const logEl = document.querySelector(".forge-log");
+    const chipsEl = document.querySelector(".forge-chips");
+    const formEl = document.querySelector(".forge-input");
+    const fieldEl = document.querySelector(".forge-field");
+    const resetEl = document.querySelector(".js-forge-reset");
+    let busy = false;
+
+    const say = (text, who, extra) => {
+      const b = document.createElement("div");
+      b.className = "fbubble " + who + (extra ? " " + extra : "");
+      b.textContent = text;
+      logEl.appendChild(b);
+      logEl.scrollTop = logEl.scrollHeight;
+      return b;
+    };
+
+    const wait = ms => new Promise(r => setTimeout(r, ms));
+
+    /** Type text into an element so the reply reads as composed, not pasted. */
+    async function stream(el, text, perChar) {
+      el.textContent = "";
+      const chunk = Math.max(1, Math.round(text.length / 90));
+      for (let i = 0; i < text.length; i += chunk) {
+        el.textContent = text.slice(0, i + chunk);
+        logEl.scrollTop = logEl.scrollHeight;
+        await wait(perChar);
+      }
+      el.textContent = text;
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function matchDomain(text) {
+      const q = text.toLowerCase();
+      let best = null, bestScore = 0;
+      Object.entries(FORGE.keywords).forEach(([id, words]) => {
+        const score = words.reduce((a, w) => a + (q.includes(w) ? w.length : 0), 0);
+        if (score > bestScore) { bestScore = score; best = id; }
+      });
+      return bestScore > 0 ? FORGE.domains.find(d => d.id === best) : null;
+    }
+
+    async function runCascade(entry) {
+      const { steps, result, caveat } = forgeCascade(entry);
+      const wrap = document.createElement("div");
+      wrap.className = "fbubble bot frun";
+      wrap.innerHTML = '<div class="frun-head">execution<span class="frun-flag">simulated</span></div><ol class="frun-events"></ol>';
+      logEl.appendChild(wrap);
+      const evs = wrap.querySelector(".frun-events");
+      const push = (type, node, status) => {
+        const li = document.createElement("li");
+        li.className = "event";
+        li.innerHTML = '<span class="ev-type"></span><span class="ev-node"></span><span class="ev-status"></span>';
+        li.querySelector(".ev-type").textContent = type;
+        li.querySelector(".ev-node").textContent = node || "";
+        const st = li.querySelector(".ev-status");
+        st.textContent = status || "";
+        if (status) st.classList.add("st-" + status.toLowerCase().replace(/[^a-z]/g, ""));
+        evs.appendChild(li);
+        logEl.scrollTop = logEl.scrollHeight;
+      };
+      push("playbook_started", entry.path, "STARTED");
+      await wait(220);
+      push("execution.catalog_snapshot", entry.path, "RECORDED");
+      for (let i = 0; i < steps.length; i++) {
+        const s = steps[i];
+        await wait(260);
+        if (i > 0) push("step.enter", s.step, "ENTERED");
+        push("command.issued", s.step, "PENDING");
+        push("command.claimed", s.tool || s.step, "RUNNING");
+        if (s.reason) push("agent.reason", s.reason, "REASONED");
+        if (s.act) push("agent.act", s.act, "ACTED");
+        push("call.done", s.step + (s.out ? " -> " + s.out : ""), "COMPLETED");
+        push("command.completed", s.step, "success");
+      }
+      await wait(260);
+      push("playbook.completed", "playbook", "COMPLETED");
+
+      const res = document.createElement("div");
+      res.className = "fbubble bot fresult";
+      res.innerHTML = '<div class="frun-head">result<span class="frun-flag">canned</span></div>';
+      (result || []).forEach(([k, v]) => {
+        const row = document.createElement("div");
+        row.className = "result-row";
+        row.innerHTML = '<span class="rk"></span><span class="rv"></span>';
+        row.querySelector(".rk").textContent = k;
+        row.querySelector(".rv").textContent = v;
+        res.appendChild(row);
+      });
+      if (caveat) {
+        const c = document.createElement("p");
+        c.className = "result-caveat";
+        c.textContent = caveat;
+        res.appendChild(c);
+      }
+      logEl.appendChild(res);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    async function generate(entry, promptText) {
+      busy = true;
+      formEl.querySelector("button").disabled = true;
+      say(promptText, "me");
+      await wait(320);
+
+      for (const line of entry.reply) {
+        const b = say("", "bot");
+        await stream(b, line, 12);
+        await wait(160);
+      }
+
+      const card = document.createElement("div");
+      card.className = "fbubble bot fplaybook";
+      card.innerHTML =
+        '<div class="frun-head">' + entry.path.split("/").pop() + '.yaml' +
+        '<span class="frun-flag">AI generated, simulated</span></div>' +
+        '<pre class="yaml"><code></code></pre>' +
+        '<div class="fplaybook-actions"><button type="button" class="btn btn-primary btn-frun">Run this playbook</button></div>';
+      logEl.appendChild(card);
+      const code = card.querySelector("code");
+      await stream(code, buildPlaybook(entry), 6);
+
+      const runBtn = card.querySelector(".btn-frun");
+      runBtn.addEventListener("click", async () => {
+        if (runBtn.disabled) return;
+        runBtn.disabled = true;
+        runBtn.textContent = "Running";
+        await runCascade(entry);
+        runBtn.textContent = "Run again";
+        runBtn.disabled = false;
+      });
+
+      busy = false;
+      formEl.querySelector("button").disabled = false;
+      fieldEl.value = "";
+    }
+
+    function buildChips() {
+      chipsEl.innerHTML = "";
+      FORGE.domains.forEach(d => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "chip forge-chip";
+        b.textContent = d.label;
+        b.title = d.prompt;
+        b.addEventListener("click", () => { if (!busy) void generate(d, d.prompt); });
+        chipsEl.appendChild(b);
+      });
+    }
+
+    formEl.addEventListener("submit", e => {
+      e.preventDefault();
+      if (busy) return;
+      const text = (fieldEl.value || "").trim();
+      if (!text) return;
+      const entry = matchDomain(text);
+      if (!entry) {
+        say(text, "me");
+        // Honest miss. Guessing would make the demo look smarter than it is.
+        say("This preview only has prepared answers for ten domains, and that prompt did not match any of them. Pick one of the suggestions below and I will write the playbook for it.", "bot", "error");
+        fieldEl.value = "";
+        return;
+      }
+      void generate(entry, text);
+    });
+
+    resetEl.addEventListener("click", () => { if (!busy) logEl.innerHTML = ""; });
+
+    buildChips();
+    say("Describe a workflow and I will write a NoETL playbook for it. Everything here is prepared in advance, so this shows the shape of the feature rather than calling a model.", "bot");
+  }
+
   createChat(document.querySelector("#waitlist .chat"), FORMS.waitlist);
   createChat(document.querySelector("#feedback .chat"), FORMS.feedback);
 })();
