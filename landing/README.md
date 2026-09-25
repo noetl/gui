@@ -278,6 +278,32 @@ Free text is routed by keyword. When nothing matches, the assistant says so
 and points at the suggestions rather than guessing, because a canned demo that
 pretends to understand arbitrary input is the same overclaim in a smaller box.
 
+## ⚠ .forge-log children must never shrink
+
+`.forge-log` is a flex column with `max-height: 560px`. Flex children default
+to `flex-shrink: 1` on the main axis, which here is vertical, so once the
+transcript is taller than the container every entry becomes a shrink
+candidate.
+
+A text bubble survives that: its text gives it a min-content floor. A playbook
+card does not, because it sets `overflow: hidden`, and the CSS automatic
+minimum size of a scroll container is **zero**. The cards were therefore
+flattened to their 2px of border while still reporting `display: block`,
+`visibility: visible` and `opacity: 1`, with the YAML and the Run button
+present in the DOM. Copying the page showed everything; nothing painted.
+
+That is also why it looked intermittent: nothing shrinks until the log
+overflows, so the first card or two rendered and everything after collapsed.
+
+`.forge-log > * { flex: 0 0 auto; }` fixes it. Measured on the live site:
+2px to 436.4px. Any new child of that container inherits the same trap, so do
+not remove it.
+
+Related, found while measuring: `.fbubble.bot` sets `align-self: flex-start`
+at specificity (0,2,0), which silently beat a bare `.fplaybook` at (0,1,0), so
+the intended `align-self: stretch` never applied and the cards sized to
+fit-content. Those selectors now carry two classes. Measured: 331px to 987px.
+
 ## ⚠ The hidden attribute must actually hide
 
 The UA rule is `[hidden] { display: none }` at specificity (0,1,0), so any

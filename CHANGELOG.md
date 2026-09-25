@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.12.1](https://github.com/noetl/gui/compare/v1.12.0...v1.12.1) (2026-09-25)
+
+### Bug Fixes
+
+* **landing:** stop the flex column from flattening generated playbook cards ([f73b52f](https://github.com/noetl/gui/commit/f73b52fe4a5991d4d2fa9884677bb67b7e1ef9fd))
+
 ## [1.12.0](https://github.com/noetl/gui/compare/v1.11.1...v1.12.0) (2026-09-24)
 
 ### Features
