@@ -83,10 +83,12 @@ window.NOETL_FORMS = {
         options: ["GitHub", "Search", "Social / X / LinkedIn", "Word of mouth",
                   "Conference / talk", "Newsletter / blog", "Other"] },
     ],
-    done: id => [
-      "You're on the list. Your reference is " + id + ". We'll email you when NoETL opens in January 2027.",
-      "Thanks for the detail; the domain, scale and timeline answers are what actually drive what gets built first.",
+    doneTitle: "You are on the waitlist",
+    done: () => [
+      "Your place is saved. We will email you when NoETL opens in January 2027, and we will not use your address for anything else.",
+      "Thanks for the detail. The domain, scale and timeline answers are what actually drive what gets built first.",
     ],
+    doneBye: "That was the last question, so there is nothing further to do. See you in January.",
   },
 
   /* ── feedback ──────────────────────────────────────────────────────── */
@@ -115,8 +117,11 @@ window.NOETL_FORMS = {
         optional: true,
         validate: v => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.trim()) || "That doesn't look like an email address." },
     ],
-    done: id => [
-      "Noted, saved as " + id + ". Thank you; the 'what's missing' answers get read properly, not aggregated away.",
+    doneTitle: "Feedback received",
+    done: () => [
+      "Saved, and thank you. The 'what is missing' answers get read properly rather than aggregated away.",
+      "If you left an email we may reply; if not, it still counts.",
     ],
+    doneBye: "That was the last question. Nothing further is needed from you.",
   },
 };

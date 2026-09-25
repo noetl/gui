@@ -305,6 +305,24 @@ same way, so the guard is written once for all of them:
 cannot survive even if that rule is ever lost. The chips are rebuilt from the
 question spec each time, so there is nothing to preserve.
 
+## The questionnaires must end visibly
+
+A finished questionnaire used to close on an ordinary bot bubble with the
+composer still sitting underneath it. Nothing distinguished "that was the last
+question" from "the next one is loading", so the natural read was that the
+flow had stalled.
+
+`finish()` now renders a distinct terminal panel (tick, heading, the close,
+the reference, and a sign-off under a divider) and **removes** the composer
+rather than disabling it. A dead input someone can still click into is its own
+small lie. Only "start over" remains, and it restores the composer.
+
+⚠ `finish()` is called from the success branch only. On a failed write the
+visitor gets the error, their answers back, and a usable composer, never the
+panel. The progress counter is reset there too: `submit()` optimistically sets
+`done = true`, so without that reset the header reads "done" after a save that
+did not happen, which is the same false confirmation the copy avoids.
+
 ## Copy rule: no dashes
 
 The site copy uses no em-dashes (U+2014), no en-dashes (U+2013), and no spaced
