@@ -231,6 +231,26 @@ h1, h2, h3, h4 { line-height: 1.25; margin: 0; }
   background: rgba(224,180,74,.15); color: var(--warn); font-size: 9.5px; letter-spacing: .08em;
 }
 
+/* ⚠ THE hidden ATTRIBUTE MUST ACTUALLY HIDE.
+ *
+ * The UA rule is `[hidden] { display: none }` at specificity (0,1,0), so any
+ * author rule that also sets display at (0,1,0) beats it, because author
+ * styles outrank user-agent styles. `.chat-multi { display: flex }` did
+ * exactly that: `multiEl.hidden = true` set the attribute, the element kept
+ * rendering, and the domain chips from the "which showcases" question stayed
+ * on screen and still lit for every question after it.
+ *
+ * That is how a presentation bug became a data bug. On the next question the
+ * visitor saw highlighted chips and no obvious empty field, pressed Send, and
+ * the handler correctly read an empty text input: "(empty)" plus a validation
+ * error on an answer they believed they had given.
+ *
+ * `.scenario-tabs` and `.mesh-more` set display: flex and use `hidden` the
+ * same way, so this guard is written once for all of them rather than patched
+ * per selector. Anything that toggles `hidden` is covered from here on.
+ */
+[hidden] { display: none !important; }
+
 /* ── chat questionnaire chrome ── */
 .chat-head {
   display: flex; align-items: center; justify-content: space-between;
@@ -376,3 +396,27 @@ h1, h2, h3, h4 { line-height: 1.25; margin: 0; }
 }
 .forge-field:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
 .forge-foot { margin: 0; padding: 9px 14px; font-size: 12.5px; color: var(--fg-3); border-top: 1px solid var(--line); }
+
+/* ── terminal state: the questionnaire is finished and must look it ── */
+.chat-done {
+  align-self: stretch; margin: 4px 0 2px; padding: 16px 18px;
+  border: 1px solid var(--accent); border-radius: var(--radius);
+  background: linear-gradient(180deg, rgba(93,214,160,.10), rgba(93,214,160,.03));
+}
+.cd-head { display: flex; align-items: center; gap: 9px; margin-bottom: 9px; }
+.cd-tick {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border-radius: 50%; background: var(--accent);
+  color: #04140d; font-size: 13px; font-weight: 700; flex: 0 0 auto;
+}
+.cd-title { font-size: 16.5px; font-weight: 650; color: var(--accent); }
+.cd-lead { margin: 0 0 7px; font-size: 14.5px; color: var(--fg); }
+.cd-sub { margin: 0 0 9px; font-size: 13.5px; color: var(--fg-2); }
+.cd-ref { margin: 0 0 9px; font-family: var(--mono); font-size: 12px; color: var(--fg-3); }
+.cd-ref code { color: var(--fg-2); }
+.cd-bye {
+  margin: 0; padding-top: 9px; border-top: 1px dashed var(--line-2);
+  font-size: 13.5px; color: var(--fg-2);
+}
+/* the composer is gone, so the footer carries the only remaining action */
+.chat-foot-done { background: var(--bg-3); color: var(--fg-2); }

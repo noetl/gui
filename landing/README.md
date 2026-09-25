@@ -304,6 +304,51 @@ at specificity (0,2,0), which silently beat a bare `.fplaybook` at (0,1,0), so
 the intended `align-self: stretch` never applied and the cards sized to
 fit-content. Those selectors now carry two classes. Measured: 331px to 987px.
 
+## ⚠ The hidden attribute must actually hide
+
+The UA rule is `[hidden] { display: none }` at specificity (0,1,0), so any
+author rule that also sets `display` at (0,1,0) beats it, because author styles
+outrank user-agent styles.
+
+`.chat-multi { display: flex }` did exactly that. `multiEl.hidden = true` set
+the attribute, the element kept rendering, and the domain chips from the
+"which showcases" question stayed on screen **and still highlighted** for every
+question after it.
+
+That is how a presentation bug became a data bug. On the next question the
+visitor saw lit chips and no obvious empty field, pressed Send, and the handler
+correctly read an empty text input: a green "(empty)" bubble plus a validation
+error on an answer they believed they had given.
+
+`.scenario-tabs` and `.mesh-more` set `display: flex` and toggle `hidden` the
+same way, so the guard is written once for all of them:
+
+```css
+[hidden] { display: none !important; }
+```
+
+`hideAllInputs()` also empties the chip container now, so a stale selection
+cannot survive even if that rule is ever lost. The chips are rebuilt from the
+question spec each time, so there is nothing to preserve.
+
+## The questionnaires must end visibly
+
+A finished questionnaire used to close on an ordinary bot bubble with the
+composer still sitting underneath it. Nothing distinguished "that was the last
+question" from "the next one is loading", so the natural read was that the
+flow had stalled.
+
+`finish()` now renders a distinct terminal panel (tick, heading, the close,
+the reference, and a sign-off under a divider) and **removes** the composer
+rather than disabling it. A dead input someone can still click into is its own
+small lie. Only "start over" remains, and it restores the composer.
+
+⚠ `finish()` is called from the success branch only. On a failed write the
+visitor gets the error, their answers back, and a usable composer, never the
+panel. The progress counter is reset there too: `submit()` optimistically sets
+`done = true`, so without that reset the header reads "done" after a save that
+did not happen, which is the same false confirmation the copy avoids.
+
 ## Copy rule: no dashes
 
 The site copy uses no em-dashes (U+2014), no en-dashes (U+2013), and no spaced

@@ -288,6 +288,7 @@
     const multiEl = root.querySelector(".chat-multi");
     const progEl = root.querySelector(".chat-progress");
     const restartEl = root.querySelector(".js-restart");
+    const footEl = root.querySelector(".chat-foot");
     const sendBtn = formEl.querySelector("button");
     const qs = spec.questions;
 
@@ -321,7 +322,16 @@
     function hideAllInputs() {
       fieldEl.hidden = true;
       selectEl.hidden = true;
-      if (multiEl) multiEl.hidden = true;
+      if (multiEl) {
+        multiEl.hidden = true;
+        // ⚠ Belt and braces. `hidden` alone was not enough once: an author
+        // `display: flex` outranked the UA `[hidden]` rule and the chips kept
+        // rendering, still lit, over every later question. A stylesheet guard
+        // now covers that, but emptying the container means a stale selection
+        // cannot survive a future regression either. There is nothing to leave
+        // behind: the chips are rebuilt from the question spec each time.
+        multiEl.innerHTML = "";
+      }
     }
 
     /** Write what we have so far. Never blocks the conversation: a failed
@@ -402,7 +412,9 @@
         const data = await res.json().catch(() => ({}));
         if (!res.ok || !data.ok) throw new Error(data.error || ("HTTP " + res.status));
         pending.remove();
-        (spec.done ? spec.done(data.id) : ["Saved as " + data.id + "."]).forEach(m => bubble(m, "bot"));
+        // ⚠ ONLY REACHED ON A CONFIRMED WRITE. Everything finish() renders
+        // tells the visitor they are done, so it must never run on a failure.
+        finish(data.id);
       } catch (err) {
         // ⚠ Never claim a save that did not happen. The visitor decides whether
         // they are on the list based on this message.
@@ -413,7 +425,54 @@
         sendBtn.disabled = false;
         qi = qs.length - 1;
         fieldEl.hidden = false;
+        // ⚠ Put the counter back too. submit() optimistically set done=true,
+        // so without this the header still reads "done" after a failed save:
+        // a completion signal for something that did not complete, which is
+        // the same false confirmation the body text is careful to avoid.
+        setProgress();
       }
+    }
+
+    /**
+     * The terminal state, and it has to look terminal.
+     *
+     * Before this, a finished questionnaire ended on an ordinary bot bubble
+     * with the composer still sitting underneath it. Nothing distinguished
+     * "that was the last question" from "the next one is loading", so the
+     * natural read was that the flow had stalled rather than finished.
+     *
+     * So the composer is REMOVED rather than merely disabled, the chips go
+     * with it, and the close is its own panel rather than one more message in
+     * the transcript. Only "start over" remains, because a dead input someone
+     * can still click into is its own small lie.
+     *
+     * ⚠ Called exclusively from the success branch. If the write fails the
+     * visitor gets the error path and their answers back, never this.
+     */
+    function finish(id) {
+      const lines = spec.done ? spec.done(id) : ["Saved as " + id + "."];
+      const panel = document.createElement("div");
+      panel.className = "chat-done";
+      panel.setAttribute("role", "status");
+      panel.innerHTML =
+        '<div class="cd-head"><span class="cd-tick" aria-hidden="true">\u2713</span>' +
+        '<span class="cd-title"></span></div>' +
+        '<p class="cd-lead"></p><p class="cd-sub"></p>' +
+        '<p class="cd-ref">reference <code></code></p>' +
+        '<p class="cd-bye"></p>';
+      panel.querySelector(".cd-title").textContent = spec.doneTitle || "All done";
+      panel.querySelector(".cd-lead").textContent = lines[0] || "";
+      panel.querySelector(".cd-sub").textContent = lines[1] || "";
+      panel.querySelector(".cd-ref code").textContent = id;
+      panel.querySelector(".cd-bye").textContent =
+        spec.doneBye || "That is every question. Nothing further is needed from you.";
+      logEl.appendChild(panel);
+      logEl.scrollTop = logEl.scrollHeight;
+
+      hideAllInputs();
+      formEl.hidden = true;
+      if (progEl) progEl.textContent = "complete";
+      if (footEl) footEl.classList.add("chat-foot-done");
     }
 
     formEl.addEventListener("submit", e => {
@@ -465,8 +524,11 @@
     if (restartEl) {
       restartEl.addEventListener("click", () => {
         started = true; done = false; qi = 0; answers = {}; recordId = null;
+        partialSave = null;
         logEl.innerHTML = "";
         sendBtn.disabled = false;
+        formEl.hidden = false;                 // undo the terminal state
+        if (footEl) footEl.classList.remove("chat-foot-done");
         ask();
       });
     }
