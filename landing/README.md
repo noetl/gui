@@ -278,6 +278,33 @@ Free text is routed by keyword. When nothing matches, the assistant says so
 and points at the suggestions rather than guessing, because a canned demo that
 pretends to understand arbitrary input is the same overclaim in a smaller box.
 
+## ⚠ The hidden attribute must actually hide
+
+The UA rule is `[hidden] { display: none }` at specificity (0,1,0), so any
+author rule that also sets `display` at (0,1,0) beats it, because author styles
+outrank user-agent styles.
+
+`.chat-multi { display: flex }` did exactly that. `multiEl.hidden = true` set
+the attribute, the element kept rendering, and the domain chips from the
+"which showcases" question stayed on screen **and still highlighted** for every
+question after it.
+
+That is how a presentation bug became a data bug. On the next question the
+visitor saw lit chips and no obvious empty field, pressed Send, and the handler
+correctly read an empty text input: a green "(empty)" bubble plus a validation
+error on an answer they believed they had given.
+
+`.scenario-tabs` and `.mesh-more` set `display: flex` and toggle `hidden` the
+same way, so the guard is written once for all of them:
+
+```css
+[hidden] { display: none !important; }
+```
+
+`hideAllInputs()` also empties the chip container now, so a stale selection
+cannot survive even if that rule is ever lost. The chips are rebuilt from the
+question spec each time, so there is nothing to preserve.
+
 ## Copy rule: no dashes
 
 The site copy uses no em-dashes (U+2014), no en-dashes (U+2013), and no spaced

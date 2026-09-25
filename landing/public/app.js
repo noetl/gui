@@ -321,7 +321,16 @@
     function hideAllInputs() {
       fieldEl.hidden = true;
       selectEl.hidden = true;
-      if (multiEl) multiEl.hidden = true;
+      if (multiEl) {
+        multiEl.hidden = true;
+        // ⚠ Belt and braces. `hidden` alone was not enough once: an author
+        // `display: flex` outranked the UA `[hidden]` rule and the chips kept
+        // rendering, still lit, over every later question. A stylesheet guard
+        // now covers that, but emptying the container means a stale selection
+        // cannot survive a future regression either. There is nothing to leave
+        // behind: the chips are rebuilt from the question spec each time.
+        multiEl.innerHTML = "";
+      }
     }
 
     /** Write what we have so far. Never blocks the conversation: a failed
