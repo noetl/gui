@@ -321,12 +321,39 @@ h1, h2, h3, h4 { line-height: 1.25; margin: 0; }
               color: var(--warn); border: 1px solid var(--warn); border-radius: 999px; padding: 2px 9px; }
 .forge-log { padding: 16px; min-height: 180px; max-height: 560px; overflow-y: auto;
              display: flex; flex-direction: column; gap: 10px; }
+
+/* ⚠ THE TRANSCRIPT MUST NOT SHRINK ITS OWN ENTRIES.
+ *
+ * .forge-log is a flex column with a max-height, so once the conversation is
+ * taller than 560px every child is a shrink candidate: flex-shrink defaults
+ * to 1 along the main axis, which here is vertical.
+ *
+ * A text bubble survives that because its text gives it a min-content floor.
+ * A playbook card does not: it sets overflow: hidden, and the CSS automatic
+ * minimum size of a scroll container is ZERO. So the cards were flattened to
+ * their 2px of border while still reporting display:block, visibility:visible
+ * and opacity:1, with the YAML and the Run button present in the DOM. The
+ * content was there; nothing painted.
+ *
+ * That is also why it looked intermittent. Nothing shrinks until the log
+ * overflows, so the first card or two rendered and everything after collapsed.
+ * Measured on the live site: h went 2px -> 436.4px with flex: 0 0 auto.
+ *
+ * Do not remove this. Any new child of .forge-log inherits the same trap. */
+.forge-log > * { flex: 0 0 auto; }
 .fbubble { padding: 10px 14px; border-radius: 14px; font-size: 14.5px; max-width: 88%; }
 .fbubble.bot { background: var(--bg-3); border: 1px solid var(--line); align-self: flex-start; border-bottom-left-radius: 4px; }
 .fbubble.me { background: var(--accent); color: #04140d; align-self: flex-end; border-bottom-right-radius: 4px; }
 .fbubble.error { border-color: var(--err); color: var(--err); }
 
-.fplaybook, .frun, .fresult { align-self: stretch; max-width: 100%; padding: 0; overflow: hidden; }
+/* ⚠ Two class selectors, deliberately. `.fbubble.bot` sets
+ * align-self: flex-start and has specificity (0,2,0); a bare `.fplaybook` is
+ * (0,1,0) and silently lost, so these blocks sized to fit-content instead of
+ * filling the transcript and the YAML wrapped far narrower than it needed to.
+ * Measured: 331px to 368px wide before, 987px after. */
+.fbubble.fplaybook, .fbubble.frun, .fbubble.fresult {
+  align-self: stretch; max-width: 100%; padding: 0; overflow: hidden;
+}
 .frun-head {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
   padding: 8px 13px; border-bottom: 1px solid var(--line); background: var(--bg);
