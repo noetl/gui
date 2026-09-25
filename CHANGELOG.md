@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.12.2](https://github.com/noetl/gui/compare/v1.12.1...v1.12.2) (2026-09-25)
+
+### Bug Fixes
+
+* **landing:** give both questionnaires an unmistakable ending ([3fed33c](https://github.com/noetl/gui/commit/3fed33c58c60204877fdafee7250fd40f046a3b8))
+* **landing:** make the hidden attribute actually hide, so the chips stop ([3879588](https://github.com/noetl/gui/commit/3879588dee144d3f4db31b70c435e808406f8a15))
+
 ## [1.12.1](https://github.com/noetl/gui/compare/v1.12.0...v1.12.1) (2026-09-25)
 
 ### Bug Fixes
