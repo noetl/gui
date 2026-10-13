@@ -99,7 +99,7 @@ const appThemeTokens: Record<AppTheme, {
 };
 
 // Define menu items with required roles
-// admin: sees all, developer: sees noetl tools, analyst/viewer: sees travel only
+// Two roles only: admin sees everything; a regular (role-less) user sees travel.
 type MenuItem = {
   key: string;
   label: string;
@@ -117,7 +117,7 @@ const ALL_MENU_ITEMS: MenuItem[] = [
   { key: "/users", label: "users", path: "/users", section: "Admin", icon: <TeamOutlined />, roles: [], adminOnly: true },
   { key: "/editor", label: "edit", path: "/editor", section: "Build", icon: <CodeOutlined />, roles: [], adminOnly: true },
   { key: "/credentials", label: "secrets", path: "/credentials", section: "Admin", icon: <KeyOutlined />, roles: [], adminOnly: true },
-  { key: "/travel", label: "travel", path: "/travel", section: "Operate", icon: <DatabaseOutlined />, roles: ["analyst", "viewer", "developer", "admin"] },
+  { key: "/travel", label: "travel", path: "/travel", section: "Operate", icon: <DatabaseOutlined />, roles: [] },
 ];
 
 function hasAccess(item: MenuItem, userRoles: string[]): boolean {

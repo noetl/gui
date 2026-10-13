@@ -23,9 +23,6 @@ const USER_MGMT_PLAYBOOK_CANDIDATES = [
 
 const ROLE_DESCRIPTIONS: Record<string, string> = {
   admin: "Full system access",
-  developer: "Create and manage playbooks",
-  analyst: "Execute playbooks and view results",
-  viewer: "View playbooks and execution history",
 };
 
 interface User {
@@ -267,7 +264,7 @@ const UserManagement = () => {
           {(roles || []).map((role) => (
             <Tag
               key={role.role_id}
-              color={role.role_name === "admin" ? "red" : role.role_name === "developer" ? "blue" : "default"}
+              color={role.role_name === "admin" ? "red" : "default"}
             >
               {role.role_name}
             </Tag>
